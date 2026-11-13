@@ -98,11 +98,13 @@ class RepoTests(unittest.TestCase):
     def test_subnet_prefix(self) -> None:
         self.assertEqual(find_tv.subnet_prefix("192.168.15.20"), "192.168.15")
 
-    def test_no_network_permission_and_home_intent(self) -> None:
+    def test_internet_permission_and_home_intent(self) -> None:
         manifest = open(os.path.join(ROOT, "app/src/main/AndroidManifest.xml"), encoding="utf-8").read()
-        self.assertNotIn("android.permission.INTERNET", manifest)
+        self.assertIn("android.permission.INTERNET", manifest)
+        self.assertNotIn("android.permission.QUERY_ALL_PACKAGES", manifest)
         self.assertIn("android.intent.category.HOME", manifest)
         self.assertIn("android.intent.category.LEANBACK_LAUNCHER", manifest)
+        self.assertIn("android.service.dreams.DreamService", manifest)
 
     def test_dock_order(self) -> None:
         xml = open(os.path.join(ROOT, "app/src/main/res/values/config.xml"), encoding="utf-8").read()
@@ -129,12 +131,31 @@ class RepoTests(unittest.TestCase):
             "tools/adbkey",
             "local.properties",
             "tools/venv/",
+            "wallpapers/",
         ):
             self.assertIn(entry, gitignore)
         example = open(os.path.join(ROOT, "recommendations.properties.example"), encoding="utf-8").read()
         self.assertRegex(example, r"(?m)^tmdb\.api\.key=\s*$")
         gradle = open(os.path.join(ROOT, "app/build.gradle.kts"), encoding="utf-8").read()
         self.assertIn('applicationId = "dev.enzotraini.tvlauncher"', gradle)
+        banned = (
+            "Horizonte Perdido",
+            "Horizonte Desconhecido",
+            "Luz de Inverno",
+            "Noite na Estação",
+            "Hora do Faro",
+            "Estrela Cadente",
+            "Além do Sinal",
+        )
+        main = os.path.join(ROOT, "app", "src", "main")
+        for dirpath, _, filenames in os.walk(main):
+            for filename in filenames:
+                if not filename.endswith((".kt", ".xml")):
+                    continue
+                with open(os.path.join(dirpath, filename), encoding="utf-8") as handle:
+                    text = handle.read()
+                for title in banned:
+                    self.assertNotIn(title, text, filename)
 
 
 if __name__ == "__main__":

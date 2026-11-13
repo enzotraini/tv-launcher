@@ -9,6 +9,11 @@ data class LauncherConfig(
     val liveTvPackage: String,
     val inputPickerPackage: String,
     val columns: Int,
+    val weatherCity: String,
+    val weatherLatitude: Double,
+    val weatherLongitude: Double,
+    val idleMinutes: Int,
+    val heroSeconds: Int,
 ) {
     companion object {
         fun from(context: Context): LauncherConfig {
@@ -29,6 +34,11 @@ data class LauncherConfig(
                 liveTvPackage = resources.getString(R.string.live_tv_package).trim(),
                 inputPickerPackage = resources.getString(R.string.input_picker_package).trim(),
                 columns = resources.getInteger(R.integer.app_columns).coerceAtLeast(1),
+                weatherCity = resources.getString(R.string.weather_city).trim().ifBlank { "São Paulo" },
+                weatherLatitude = resources.getString(R.string.weather_latitude).toDoubleOrNull() ?: -23.5505,
+                weatherLongitude = resources.getString(R.string.weather_longitude).toDoubleOrNull() ?: -46.6333,
+                idleMinutes = resources.getInteger(R.integer.idle_minutes).coerceIn(1, 180),
+                heroSeconds = resources.getInteger(R.integer.hero_seconds).coerceIn(4, 30),
             )
         }
     }

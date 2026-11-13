@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <gradient
+        android:angle="0"
+        android:endColor="#7A45FF"
+        android:startColor="#542FE0" />
+    <corners android:radius="@dimen/dock_tile_radius" />
+</shape>

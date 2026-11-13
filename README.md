@@ -8,12 +8,15 @@ A interface não segue o visual escuro de Apple TV. O cliente ADB e o debloat re
 
 ## O que aparece na TV
 
-- Fundo claro, título **Para você**, saudação e relógio.
-- Prateleiras horizontais com cartazes desenhados no próprio app. Os títulos são um catálogo estático, sem rede e sem pôster de estúdio.
-- Dock, nesta ordem: Netflix, YouTube, Globoplay, Prime Video, Disney+, Stremio. App que não estiver instalado continua no dock, apagado.
-- **Todos** abre a grade dos outros apps instalados (Plex, Jellyfin e o que mais tiver atividade de launcher).
-- Ao voltar para o launcher, a lista de pacotes é relida.
-- **Entradas**, o botão Menu do controle, ou a tecla de fonte (`TV_INPUT`) abrem HDMI, TV ao vivo, o seletor da TCL se existir, Configurações e Wi-Fi.
+- Fundo off-white. Abas **Explorar**, **Filmes**, **Séries** e **Ao vivo**. Explorar abre selecionada.
+- Relógio e clima de São Paulo no topo (Open-Meteo, sem chave). A cidade e as coordenadas ficam em `config.xml`.
+- Hero com o título em alta e a prateleira de baixo. Os dados vêm do TMDB, região Brasil. Sem chave, ou sem rede e sem cópia salva, a prateleira fica vazia. Não há título inventado.
+- **Ao vivo** lista Globo, Band, SBT, Record e Cultura. Se o app oficial estiver instalado, ele abre; senão, abre o sintonizador (`live_tv_package`, `com.tcl.tv`). Cultura só tem o sintonizador. A fileira **Grátis pra assistir** é Pluto TV, Plex, Libreflix, Spcine Play e YouTube. Não há grade de programação nem futebol: não achei fonte gratuita confiável.
+- Dock flutuante, nesta ordem: Netflix, YouTube, Globoplay, Prime Video, Disney+, Stremio. App que não estiver instalado continua no dock; ao abrir, um aviso explica. Apple TV não entra no dock.
+- **Todos**, no fim do dock, abre a grade dos outros apps instalados.
+- A engrenagem, o botão Menu ou a tecla de fonte (`TV_INPUT`) abrem **Entradas**: HDMI 1 a 4 e Antena, com nome que você escolhe, e atalhos de Imagem, Som, Wi-Fi, Bluetooth, Ajustes e Fundos. O status de conexão só aparece quando a TV informa.
+- Depois de 5 minutos parado na home (o tempo muda em Fundos), entra o modo descanso: relógio grande, data por extenso, clima e fotos em tela cheia. O mesmo modo pode ser o protetor de tela do sistema, se você escolher **Descanso** nos ajustes. O app não força essa escolha.
+- Voltar sobe um nível (dock, prateleira, hero, abas) e não fecha a home.
 
 ## O que você precisa
 
@@ -134,7 +137,7 @@ O APK de debug fica em:
 app/build/outputs/apk/debug/app-debug.apk
 ```
 
-O mesmo comando, sem `--build-only`, compila e instala. O app não pede internet. Não há chave de API no código.
+O mesmo comando, sem `--build-only`, compila e instala. A chave do TMDB, se existir em `recommendations.properties`, entra no APK nessa compilação. O arquivo da chave não vai para o git.
 
 ## 7. Instalar e definir como launcher padrão
 
@@ -196,7 +199,7 @@ SETUPWRAITH_PACKAGE=nome.que.aparecer tools/install-launcher.sh
 
 Se a home abrir atrás do app que estava na frente, rode `tools/install-launcher.sh` outra vez. O script força a parada de Configurações e do launcher antes de mandar Home. Foi o que destravou esse caso no tv-home.
 
-No dock, **Todos** deve listar o que você instalou além dos seis apps fixos. Volte de um app para a home depois de instalar algo novo: a lista é relida. **Entradas** deve abrir mesmo sem HDMI detectado (no emulador ou num aparelho sem entrada visível aparece o aviso, e Configurações continua lá).
+No dock, **Todos** deve listar o que você instalou além dos seis apps fixos. Volte de um app para a home depois de instalar algo novo: a lista é relida. A engrenagem (**Entradas**) deve abrir mesmo sem HDMI detectado (no emulador ou num aparelho sem entrada visível aparece o aviso, e Configurações continua lá). Menu e a tecla de fonte fazem o mesmo.
 
 ## 9. Restaurar
 
@@ -250,18 +253,61 @@ Depois de editar:
 tools/install-launcher.sh
 ```
 
-## Recomendações
+## Chave do TMDB
 
-As prateleiras saem de `StaticRecommendations`, um catálogo fixo dentro do app. O gancho é a interface `RecommendationsSource` e o método `RecommendationCatalog.current()` em `app/src/main/java/dev/enzotraini/tvlauncher/model/Catalog.kt`.
+A home, Filmes, Séries e o detalhe leem o TMDB (tendências no Brasil, lançamentos da semana, populares, nota, ano, pôster e onde assistir em `region=BR`). A cópia fica no aparelho por algumas horas. Sem a chave, a tela explica e não mostra título nenhum.
 
-Uma versão futura pode trocar essa fonte por TMDB:
+No Mac:
 
-1. Implemente `RecommendationsSource`.
-2. Leia a chave de `recommendations.properties` (copie de `recommendations.properties.example`). O arquivo real está no `.gitignore`.
-3. Devolva a fonte nova em `RecommendationCatalog.current()`, com o catálogo estático de reserva se a rede falhar.
-4. Só então acrescente a permissão `INTERNET`. Ela não está no manifesto de propósito.
+1. Crie uma conta grátis em [themoviedb.org](https://www.themoviedb.org/signup).
+2. Abra [Settings → API](https://www.themoviedb.org/settings/api).
+3. Peça uma chave de desenvolvedor. O uso é pessoal, neste launcher.
+4. Copie a **API Key** (v3). Não use o token de leitura v4.
+5. Na raiz do repositório:
 
-Não coloque a chave em `config.xml`, no Gradle versionado nem neste README.
+```bash
+cp recommendations.properties.example recommendations.properties
+```
+
+6. Edite `recommendations.properties` e deixe uma linha, sem aspas:
+
+```text
+tmdb.api.key=cole_a_chave_aqui
+```
+
+7. Compile e instale de novo. A chave é lida na compilação:
+
+```bash
+tools/install-launcher.sh
+```
+
+`recommendations.properties` está no `.gitignore`. Não cole a chave no README, no `config.xml` nem num commit.
+
+O clima não precisa de chave. Para outra cidade, edite `weather_city`, `weather_latitude` e `weather_longitude` em `app/src/main/res/values/config.xml` e reinstale.
+
+## Fotos do descanso
+
+As fotos ficam no aparelho, não no git. A pasta `wallpapers/` na raiz também está no `.gitignore`.
+
+```bash
+mkdir -p wallpapers
+cp ~/Fotos/descanso/*.jpg wallpapers/
+tools/install-launcher.sh
+tools/push-wallpapers.sh
+```
+
+O script usa o mesmo ADB do `tools/tv.py`. Ele manda cada jpg, png ou webp para `Android/data/dev.enzotraini.tvlauncher/files/wallpapers` e, no app de debug, também para o armazenamento interno do app. Nome de arquivo só com letras, números, ponto, hífen e sublinhado.
+
+Abra **Entradas → Fundos**. OK gira a foto em foco. Dá para ocultar, embaralhar e mudar o intervalo. Foto deitada salva em arquivo retrato não se endireita sozinha: o EXIF delas costuma dizer que já estão em pé. Gire nessa tela. Sem foto, o descanso usa cenários que já vieram do TMDB, se a chave e a cópia existirem.
+
+Para o protetor de tela do sistema: **Ajustes → Dispositivo → Tela → Protetor de tela** (o caminho muda com a firmware) e escolha **Descanso**. O app se registra, mas não se define sozinho.
+
+## O que não entra
+
+- Título, pôster ou grade de programação inventados.
+- Futebol. Não há fonte gratuita e estável para a grade do dia.
+- App ou site pirata. Ao vivo só abre sintonizador ou app oficial.
+- Apple TV no dock. No detalhe, “Assistir na Apple TV” pode aparecer se o TMDB listar o serviço e o app estiver instalado.
 
 ## Avisos
 
@@ -274,21 +320,24 @@ Não coloque a chave em `config.xml`, no Gradle versionado nem neste README.
 
 ## O que fica para depois
 
-- Fonte real de recomendações (TMDB ou outra), com a chave fora do git.
 - Ajuste da lista de debloat depois de ver os pacotes desta TCL.
-- Prova visual na tela de 75". Aqui só houve compilação do APK de debug, sem aparelho.
+- Prova na TCL 75". A compilação roda no computador; a instalação é o `tools/install-launcher.sh`.
+- Grade de programação e jogos do dia, se aparecer uma fonte oficial e gratuita.
 
 ## Mapa do repositório
 
 | Caminho | Função |
 |---|---|
-| `app/` | Launcher Android. Sem rede e sem serviço em segundo plano. |
-| `app/src/main/res/values/config.xml` | Dock, apps ocultos, TV ao vivo, colunas da grade. |
-| `tools/tv.py` | ADB por Wi-Fi: shell, lote e envio do APK. |
+| `app/` | Launcher Android. Catálogo via TMDB e clima via Open-Meteo. |
+| `app/src/main/res/values/config.xml` | Dock, apps ocultos, TV ao vivo, clima e tempos. |
+| `recommendations.properties` | Chave do TMDB, só na sua máquina. |
+| `wallpapers/` | Fotos do descanso, só na sua máquina. |
+| `tools/tv.py` | ADB por Wi-Fi: shell, lote e envio de arquivo. |
 | `tools/find-tv.sh` | Acha a TV na rede. |
 | `tools/backup.sh` | Cópia dos pacotes e do Home atual. |
 | `tools/disable.sh`, `tools/restore.sh` | Aplicam e desfazem a lista. |
 | `tools/install-launcher.sh` | Compila, instala e assume o Home. |
+| `tools/push-wallpapers.sh` | Manda as fotos do descanso para o app. |
 | `examples/tcl-google-tv/debloat.txt` | Pacotes para desabilitar, nunca desinstalar. |
 
 ## Licença

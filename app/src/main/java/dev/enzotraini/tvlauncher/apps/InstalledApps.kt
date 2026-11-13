@@ -30,19 +30,17 @@ class InstalledApps(private val context: Context) {
         return found.values.sortedWith { left, right -> collator.compare(left.label, right.label) }
     }
 
-    fun open(component: ComponentName): Boolean {
-        val direct = Intent(Intent.ACTION_MAIN)
-            .setComponent(component)
-            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED)
-        return start(direct) || openPackage(component.packageName)
-    }
+    fun open(component: ComponentName): Boolean = openPackage(component.packageName)
 
     fun openPackage(packageName: String): Boolean {
         if (packageName.isBlank()) return false
+        val flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED
         val leanback = packageManager.getLeanbackLaunchIntentForPackage(packageName)
-        if (leanback != null && start(leanback)) return true
         val launch = packageManager.getLaunchIntentForPackage(packageName)
-        return launch != null && start(launch)
+        return firstWorkingLaunch(
+            leanback = leanback?.let { { start(it.addFlags(flags)) } },
+            launcher = launch?.let { { start(it.addFlags(flags)) } },
+        )
     }
 
     fun isInstalled(packageName: String): Boolean {
@@ -89,4 +87,10 @@ class InstalledApps(private val context: Context) {
             false
         }
     }
+}
+
+/** Leanback primeiro. Se essa abertura falhar, tenta o launcher comum. */
+internal fun firstWorkingLaunch(leanback: (() -> Boolean)?, launcher: (() -> Boolean)?): Boolean {
+    if (leanback?.invoke() == true) return true
+    return launcher?.invoke() == true
 }

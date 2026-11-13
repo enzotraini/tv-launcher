@@ -1,45 +1,63 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/poster_root"
-    android:layout_width="@dimen/poster_width"
-    android:layout_height="wrap_content"
-    android:layout_marginEnd="@dimen/poster_gap"
-    android:clickable="true"
-    android:clipChildren="false"
-    android:focusable="true"
-    android:orientation="vertical"
-    android:padding="3dp">
+<merge xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <FrameLayout
-        android:id="@+id/poster_frame"
+    <ImageView
+        android:id="@+id/poster_art"
         android:layout_width="match_parent"
-        android:layout_height="@dimen/poster_height"
-        android:duplicateParentState="true"
-        android:foreground="@drawable/focus_ring">
+        android:layout_height="match_parent"
+        android:contentDescription="@null"
+        android:importantForAccessibility="no"
+        android:scaleType="centerCrop" />
 
-        <dev.enzotraini.tvlauncher.ui.PosterArt
-            android:id="@+id/poster_art"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent" />
-    </FrameLayout>
+    <TextView
+        android:id="@+id/poster_letters"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fontFamily="@font/inter_bold"
+        android:gravity="center"
+        android:textColor="@color/muted"
+        android:textSize="@dimen/text_subtitle"
+        android:visibility="gone" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="72dp"
+        android:layout_gravity="bottom"
+        android:background="@drawable/bg_poster_scrim" />
 
     <TextView
         android:id="@+id/poster_title"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
+        android:layout_gravity="bottom"
         android:ellipsize="end"
+        android:fontFamily="@font/inter_semibold"
         android:maxLines="2"
-        android:textColor="@color/ink"
-        android:textSize="14sp" />
+        android:paddingStart="10dp"
+        android:paddingEnd="10dp"
+        android:paddingBottom="10dp"
+        android:textColor="@color/white"
+        android:textSize="@dimen/text_poster" />
 
     <TextView
-        android:id="@+id/poster_meta"
-        android:layout_width="match_parent"
+        android:id="@+id/poster_badge"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="2dp"
-        android:ellipsize="end"
-        android:maxLines="1"
-        android:textColor="@color/muted"
-        android:textSize="12sp" />
-</LinearLayout>
+        android:layout_gravity="top|end"
+        android:layout_margin="8dp"
+        android:background="@drawable/bg_chip"
+        android:fontFamily="@font/inter_semibold"
+        android:paddingStart="8dp"
+        android:paddingTop="3dp"
+        android:paddingEnd="8dp"
+        android:paddingBottom="3dp"
+        android:textColor="@color/ink"
+        android:textSize="12sp"
+        android:visibility="gone" />
+
+    <dev.enzotraini.tvlauncher.ui.ShimmerView
+        android:id="@+id/poster_shimmer"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone" />
+</merge>

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
   Dock e atalhos. A ordem de dock_apps e dock_labels é a mesma, da esquerda para a direita.
-  App que não estiver instalado continua no dock, apagado, com o nome.
+  App que não estiver instalado continua no dock. Ao abrir, um aviso explica.
   Para achar um pacote na TV:
     tools/venv/bin/python tools/tv.py 'pm list packages'
   Depois de editar, gere de novo e reinstale: tools/install-launcher.sh
@@ -45,4 +45,13 @@
     <string name="input_picker_package" translatable="false">com.tcl.suspension</string>
 
     <integer name="app_columns">6</integer>
+
+    <!-- Clima do Open-Meteo. Sem chave. São Paulo é o padrão. -->
+    <string name="weather_city">São Paulo</string>
+    <string name="weather_latitude" translatable="false">-23.5505</string>
+    <string name="weather_longitude" translatable="false">-46.6333</string>
+
+    <!-- Descanso e hero. A tela Fundos do descanso pode mudar o tempo de inatividade. -->
+    <integer name="idle_minutes">5</integer>
+    <integer name="hero_seconds">8</integer>
 </resources>
