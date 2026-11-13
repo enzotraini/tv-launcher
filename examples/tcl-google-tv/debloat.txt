@@ -1,0 +1,54 @@
+# TCL Google TV — ponto de partida para a sala.
+# Adaptado da lista examples/tcl-google-tv-g07 de tv-home (TCL G07, Android 11).
+# Não é um inventário da sua TCL 75" QD Mini LED. Leia antes de aplicar.
+# Pacote que não existir na TV gera um erro e o script segue para o próximo.
+#
+# Aplicar:  tools/disable.sh examples/tcl-google-tv/debloat.txt
+# Desfazer: tools/restore.sh examples/tcl-google-tv/debloat.txt
+#
+# Só desabilita para o usuário 0. Não desinstala.
+# Comente a linha de qualquer coisa que você use.
+#
+# NÃO coloque estes pacotes aqui (o script recusa). O install desliga e o restore liga:
+#   com.google.android.tungsten.setupwraith
+#   com.google.android.apps.tv.launcherx
+#   com.google.android.tvlauncher
+# Também não desabilite Play Store, GMS, Configurações, TV ao vivo, Netflix, YouTube,
+# Globoplay, Prime Video, Disney+, Stremio, Plex ou Jellyfin.
+
+# Telemetria, conta e propaganda da TCL
+com.tcl.ttvs                       # núcleo TCL: analytics e conta. Se algo da TCL quebrar, restaure este primeiro
+com.tcl.usercenter                 # conta TCL / vínculo com o celular
+com.tcl.messagebox                 # pop-ups de promoção
+com.tcl.esticker                   # adesivos de promoção na tela
+com.tcl.partnercustomizer          # fileiras de parceiros no launcher de fábrica
+
+# Abas e canais de conteúdo da TCL
+com.tcl.channelplus                # app TCL Channel
+com.tcl.waterfall.overseas         # aba de conteúdo TCL
+com.tcl.tv.tclhome_passive
+
+# Utilitários que costumam só ocupar memória
+com.tcl.guard                      # “limpeza” / TV Guard
+com.tcl.notereminder
+com.tcl.hotelmenu                  # modo hotel
+
+# Google que não é o sistema
+com.google.android.apps.tv.dreamx  # protetor de tela com recomendações; o protetor simples continua
+com.google.android.play.games
+com.google.android.feedback
+android.autoinstalls.config.google.gtvpai   # instala sozinho apps promovidos
+
+# Opcional. Descomente só se você não usa o recurso.
+# com.tcl.miracast                 # espelhamento de tela
+# com.tcl.MultiScreenInteraction_TV  # T-Cast
+# com.tcl.ui_mediaCenter           # player de mídia USB
+# com.tcl.gallery                  # fotos USB
+# com.google.android.apps.mediashell # Chromecast embutido. Deixe comentado se você transmite do celular
+# com.google.android.videos        # Google TV / Play Filmes
+
+# Preinstalados regionais da lista G07. A maioria das TVs no Brasil não tem estes.
+# com.hungama.movies.tv
+# tv.airtel.xstream.tvapp
+# com.internet.tvbrowser
+# com.mxtech.videoplayer.television
