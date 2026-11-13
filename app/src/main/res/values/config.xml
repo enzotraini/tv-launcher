@@ -45,4 +45,13 @@
     <string name="input_picker_package" translatable="false">com.tcl.suspension</string>
 
     <integer name="app_columns">6</integer>
+
+    <!-- Clima do Open-Meteo. Sem chave. São Paulo é o padrão. -->
+    <string name="weather_city">São Paulo</string>
+    <string name="weather_latitude" translatable="false">-23.5505</string>
+    <string name="weather_longitude" translatable="false">-46.6333</string>
+
+    <!-- Descanso e hero. A tela Fundos do descanso pode mudar o tempo de inatividade. -->
+    <integer name="idle_minutes">5</integer>
+    <integer name="hero_seconds">8</integer>
 </resources>

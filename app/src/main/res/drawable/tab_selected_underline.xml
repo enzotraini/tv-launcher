@@ -4,7 +4,7 @@
         android:height="2.5dp"
         android:gravity="bottom">
         <shape>
-            <solid android:color="@color/ink" />
+            <solid android:color="@color/accent" />
             <corners android:radius="2dp" />
         </shape>
     </item>

@@ -12,6 +12,7 @@ captures/
 
 # Segredos e estado da TV neste computador
 recommendations.properties
+wallpapers/
 tools/venv/
 tools/adbkey/
 tools/.tv_host

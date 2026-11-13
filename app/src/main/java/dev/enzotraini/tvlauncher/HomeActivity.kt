@@ -4,49 +4,99 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import android.graphics.Rect
+import android.graphics.Bitmap
 import android.os.Build
 import android.os.Bundle
-import android.provider.Settings
+import android.os.Handler
+import android.os.Looper
+import android.view.KeyEvent
 import android.view.View
 import android.view.ViewGroup
-import android.view.animation.DecelerateInterpolator
 import android.widget.LinearLayout
+import android.widget.TextView
 import android.widget.Toast
+import androidx.palette.graphics.Palette
 import dev.enzotraini.tvlauncher.apps.InstalledApps
 import dev.enzotraini.tvlauncher.apps.LaunchableApp
 import dev.enzotraini.tvlauncher.databinding.ActivityHomeBinding
 import dev.enzotraini.tvlauncher.databinding.ItemDockBinding
-import dev.enzotraini.tvlauncher.databinding.ItemFeatureBinding
 import dev.enzotraini.tvlauncher.databinding.ViewTabBinding
+import dev.enzotraini.tvlauncher.model.HomeBand
 import dev.enzotraini.tvlauncher.model.HomeTab
-import dev.enzotraini.tvlauncher.model.Kind
-import dev.enzotraini.tvlauncher.model.RecommendationCatalog
-import dev.enzotraini.tvlauncher.model.featured
-import dev.enzotraini.tvlauncher.model.metadata
+import dev.enzotraini.tvlauncher.model.Load
+import dev.enzotraini.tvlauncher.model.MediaItem
+import dev.enzotraini.tvlauncher.model.MediaKind
+import dev.enzotraini.tvlauncher.model.OfferKind
+import dev.enzotraini.tvlauncher.model.ShelfMemory
+import dev.enzotraini.tvlauncher.model.WeatherKind
+import dev.enzotraini.tvlauncher.model.bandAfterBack
+import dev.enzotraini.tvlauncher.model.broadcastWeek
+import dev.enzotraini.tvlauncher.model.channelHint
+import dev.enzotraini.tvlauncher.model.clockLabel
+import dev.enzotraini.tvlauncher.model.matchProvider
+import dev.enzotraini.tvlauncher.model.metaLine
+import dev.enzotraini.tvlauncher.model.nextHeroIndex
+import dev.enzotraini.tvlauncher.model.pageTint
 import dev.enzotraini.tvlauncher.model.planDock
-import dev.enzotraini.tvlauncher.ui.Artwork
+import dev.enzotraini.tvlauncher.model.resolveChannel
+import dev.enzotraini.tvlauncher.model.resolveService
+import dev.enzotraini.tvlauncher.model.temperatureLabel
+import dev.enzotraini.tvlauncher.model.tmdbImage
+import dev.enzotraini.tvlauncher.ui.ChannelCard
 import dev.enzotraini.tvlauncher.ui.DockBrands
 import dev.enzotraini.tvlauncher.ui.Dpad
+import dev.enzotraini.tvlauncher.ui.HeroBanner
+import dev.enzotraini.tvlauncher.ui.PosterCard
+import dev.enzotraini.tvlauncher.ui.animatePageColor
 import dev.enzotraini.tvlauncher.ui.applyRoundOutline
-import kotlin.math.roundToInt
-
+import dev.enzotraini.tvlauncher.ui.dp
+import dev.enzotraini.tvlauncher.ui.tvFocus
+import java.time.LocalDate
+import java.time.LocalTime
 class HomeActivity : TvActivity() {
     private lateinit var binding: ActivityHomeBinding
     private lateinit var config: LauncherConfig
     private lateinit var installedApps: InstalledApps
+    private val handler = Handler(Looper.getMainLooper())
     private val tabViews = mutableListOf<TabSlot>()
-    private val featuredFocus = mutableListOf<View>()
-    private val dockFocus = mutableListOf<View>()
-    private var currentTab = HomeTab.FILMES
+    private val memory = ShelfMemory()
+    private val posters = mutableListOf<View>()
+    private val posterCards = LinkedHashMap<String, PosterCard>()
+    private val channels = mutableListOf<View>()
+    private val freebies = mutableListOf<View>()
+    private val dockViews = mutableListOf<View>()
+    private var hero: HeroBanner? = null
+    private var heroItems: List<MediaItem> = emptyList()
+    private var heroIndex = 0
+    private var heroBitmap: Bitmap? = null
+    private var currentTab = HomeTab.EXPLORAR
+    private var activeRow = HomeTab.EXPLORAR.shelfId
     private var appsSignature: String? = null
     private var lastFocusKey: String? = null
+    private var loadGeneration = 0
+    private var tintToken = 0
     private var packagesRegistered = false
+    private var focusTouched = false
+
+    private val clockTick = object : Runnable {
+        override fun run() {
+            binding.clock.text = clockLabel(LocalTime.now())
+            handler.postDelayed(this, 15_000L)
+        }
+    }
+
+    private val heroTick = object : Runnable {
+        override fun run() {
+            advanceHero()
+            handler.postDelayed(this, config.heroSeconds * 1_000L)
+        }
+    }
 
     private val packageReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             appsSignature = null
             refreshDock()
+            if (currentTab == HomeTab.AO_VIVO) showLive()
         }
     }
 
@@ -58,26 +108,42 @@ class HomeActivity : TvActivity() {
         installedApps = InstalledApps(this)
         lastFocusKey = savedInstanceState?.getString(STATE_FOCUS)
         currentTab = HomeTab.fromId(savedInstanceState?.getString(STATE_TAB))
-        bindTabs()
-        bindIconCluster()
-        selectTab(currentTab, force = true)
-        refreshDock()
-        registerPackages()
         if (Build.VERSION.SDK_INT >= 28) {
             binding.dock.outlineSpotShadowColor = 0x38000000
             binding.dock.outlineAmbientShadowColor = 0x14000000
         }
-        // O primeiro foco tem de ser Filmes. Sem isso o sistema foca Explorar
-        // e a aba troca antes da home aparecer.
-        restoreFocus(lastFocusKey)
+        bindTabs()
+        binding.settingsButton.tag = KEY_ENTRADAS
+        binding.settingsButton.tvFocus(1.05f) { focused ->
+            if (focused) lastFocusKey = KEY_ENTRADAS
+        }
+        binding.settingsButton.setOnClickListener { openInputs() }
+        selectTab(currentTab, fetch = false)
+        refreshDock()
+        registerPackages()
+        binding.root.post { restoreFocus(lastFocusKey) }
     }
 
     override fun onResume() {
         super.onResume()
+        handler.removeCallbacks(clockTick)
+        clockTick.run()
+        loadWeather()
         refreshDock()
+        if (currentTab == HomeTab.AO_VIVO) {
+            showLive()
+        } else {
+            loadCatalog(currentTab, keepVisible = posters.isNotEmpty() || heroItems.isNotEmpty())
+        }
         binding.root.post {
             if (currentFocus == null) restoreFocus(lastFocusKey)
         }
+    }
+
+    override fun onPause() {
+        handler.removeCallbacks(clockTick)
+        handler.removeCallbacks(heroTick)
+        super.onPause()
     }
 
     override fun onDestroy() {
@@ -95,15 +161,34 @@ class HomeActivity : TvActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         lastFocusKey = null
-        selectTab(HomeTab.FILMES, force = true)
-        binding.root.post { restoreFocus(null) }
+        focusTouched = false
+        selectTab(HomeTab.EXPLORAR, fetch = true, force = true)
+    }
+
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        if (event.action == KeyEvent.ACTION_DOWN) focusTouched = true
+        return super.dispatchKeyEvent(event)
     }
 
     @Deprecated("O Voltar não fecha a home.")
     @Suppress("DEPRECATION")
     override fun onBackPressed() {
-        lastFocusKey = null
-        restoreFocus(null)
+        if (lastFocusKey?.startsWith("free:") == true && channels.isNotEmpty()) {
+            val index = memory.recall(ROW_FREE, freebies.size)
+            (channels.getOrNull(index) ?: channels.first()).requestFocus()
+            return
+        }
+        val band = bandOf(lastFocusKey)
+        val next = bandAfterBack(
+            current = band,
+            hasHero = hero?.play?.isShown == true && currentTab != HomeTab.AO_VIVO,
+            hasRow = currentRow().isNotEmpty(),
+        )
+        if (next == HomeBand.TABS && band == HomeBand.TABS) {
+            selectedTab()?.requestFocus()
+            return
+        }
+        focusBand(next)
     }
 
     private fun bindTabs() {
@@ -111,49 +196,43 @@ class HomeActivity : TvActivity() {
         tabViews.clear()
         val tabs = HomeTab.entries
         for (tab in tabs) {
-            val tabBinding = ViewTabBinding.inflate(layoutInflater, binding.tabRow, true)
+            val tabBinding = ViewTabBinding.inflate(layoutInflater, binding.tabRow, false)
             val label = tabBinding.tabLabel
             label.id = View.generateViewId()
             label.setText(tabLabel(tab))
             label.contentDescription = getString(tabLabel(tab))
-            if (tab == tabs.last()) {
-                (label.layoutParams as LinearLayout.LayoutParams).marginEnd = 0
+            label.tag = "tab:${tab.shelfId}"
+            label.tvFocus(1f) { focused ->
+                if (focused) {
+                    lastFocusKey = "tab:${tab.shelfId}"
+                    selectTab(tab, fetch = true)
+                }
             }
-            label.setOnClickListener { selectTab(tab) }
-            watchFocus(label, "tab:${tab.shelfId}", scale = 1f) { focused ->
-                if (focused) selectTab(tab)
-            }
-            tabViews += TabSlot(tab, tabBinding)
+            label.setOnClickListener { selectTab(tab, fetch = true) }
+            binding.tabRow.addView(label)
+            tabViews += TabSlot(tab, label)
         }
     }
 
-    private fun bindIconCluster() {
-        watchFocus(binding.castButton, KEY_CAST, scale = 1.05f)
-        watchFocus(binding.editButton, KEY_EDIT, scale = 1.05f)
-        watchFocus(binding.settingsButton, KEY_ENTRADAS, scale = 1.05f)
-        binding.castButton.setOnClickListener { openCast() }
-        binding.editButton.setOnClickListener { openAppSettings() }
-        binding.settingsButton.setOnClickListener { openInputs() }
-    }
-
-    private fun selectTab(tab: HomeTab, force: Boolean = false) {
-        val same = tab == currentTab && binding.featuredRow.childCount > 0
+    private fun selectTab(tab: HomeTab, fetch: Boolean, force: Boolean = false) {
+        val changed = force || tab != currentTab
         currentTab = tab
         renderTabs()
-        if (same && !force) return
-        bindFeatured()
-        wireFocus()
+        if (!changed) return
+        handler.removeCallbacks(heroTick)
+        if (tab == HomeTab.AO_VIVO) {
+            showLive()
+            return
+        }
+        if (fetch) loadCatalog(tab, keepVisible = false)
     }
 
     private fun renderTabs() {
         for (slot in tabViews) {
             val selected = slot.tab == currentTab
-            val label = slot.binding.tabLabel
-            label.setTextColor(getColor(if (selected) R.color.ink else R.color.tab_inactive))
-            label.typeface = resources.getFont(
-                if (selected) R.font.inter_semibold else R.font.inter_regular,
-            )
-            label.background = if (selected) {
+            slot.label.setTextColor(getColor(if (selected) R.color.ink else R.color.tab_inactive))
+            slot.label.typeface = resources.getFont(if (selected) R.font.inter_semibold else R.font.inter_regular)
+            slot.label.background = if (selected) {
                 getDrawable(R.drawable.tab_selected_underline)?.constantState?.newDrawable()?.mutate()
             } else {
                 null
@@ -161,46 +240,332 @@ class HomeActivity : TvActivity() {
         }
     }
 
-    private fun bindFeatured() {
-        val items = RecommendationCatalog.current().shelves()
-            .firstOrNull { it.id == currentTab.shelfId }
-            ?.featured()
-            .orEmpty()
-        binding.featuredRow.removeAllViews()
-        featuredFocus.clear()
-        val radius = resources.getDimension(R.dimen.poster_radius)
-        items.forEachIndexed { index, title ->
-            val poster = ItemFeatureBinding.inflate(layoutInflater, binding.featuredRow, false)
-            val root = poster.featureRoot
-            root.id = View.generateViewId()
-            val params = LinearLayout.LayoutParams(
-                0,
+    private fun loadCatalog(tab: HomeTab, keepVisible: Boolean) {
+        val generation = ++loadGeneration
+        binding.catalogBlock.visibility = View.VISIBLE
+        binding.liveBlock.visibility = View.GONE
+        if (BuildConfig.TMDB_API_KEY.isBlank()) {
+            showMessage(getString(R.string.empty_key))
+            return
+        }
+        if (!keepVisible) showSkeleton(tab)
+        app().io.execute {
+            val today = LocalDate.now()
+            val week = broadcastWeek(today)
+            val tmdb = app().tmdb()
+            val heroLoad: Load<List<MediaItem>>
+            val shelfLoad: Load<List<MediaItem>>
+            when (tab) {
+                HomeTab.EXPLORAR -> {
+                    heroLoad = tmdb.trending()
+                    shelfLoad = tmdb.weekly(week.first, week.second)
+                }
+                HomeTab.FILMES -> {
+                    heroLoad = tmdb.movies()
+                    shelfLoad = heroLoad
+                }
+                HomeTab.SERIES -> {
+                    heroLoad = tmdb.series()
+                    shelfLoad = heroLoad
+                }
+                HomeTab.AO_VIVO -> return@execute
+            }
+            runOnUiThread {
+                if (generation != loadGeneration || currentTab != tab) return@runOnUiThread
+                renderCatalog(tab, heroLoad, shelfLoad)
+            }
+        }
+    }
+
+    private fun renderCatalog(
+        tab: HomeTab,
+        heroLoad: Load<List<MediaItem>>,
+        shelfLoad: Load<List<MediaItem>>,
+    ) {
+        val trending = (heroLoad as? Load.Ready)?.value.orEmpty()
+        val shelfItems = (shelfLoad as? Load.Ready)?.value.orEmpty()
+        val feature = trending.ifEmpty { shelfItems }
+        if (heroLoad is Load.MissingKey || shelfLoad is Load.MissingKey) {
+            showMessage(getString(R.string.empty_key))
+            return
+        }
+        if (feature.isEmpty() && shelfItems.isEmpty()) {
+            val message = if (heroLoad is Load.Unavailable || shelfLoad is Load.Unavailable) {
+                getString(R.string.empty_offline)
+            } else {
+                getString(R.string.empty_shelf)
+            }
+            showMessage(message)
+            return
+        }
+        binding.catalogBlock.visibility = View.VISIBLE
+        binding.emptyMessage.visibility = View.GONE
+        binding.heroHost.visibility = if (feature.isEmpty()) View.GONE else View.VISIBLE
+        binding.shelfTitle.visibility = View.VISIBLE
+        binding.posterScroll.visibility = View.VISIBLE
+        binding.shelfTitle.text = shelfTitle(tab)
+        if (shelfItems.isEmpty()) {
+            binding.emptyMessage.visibility = View.VISIBLE
+            binding.emptyMessage.text = if (shelfLoad is Load.Unavailable) {
+                getString(R.string.empty_offline)
+            } else {
+                getString(R.string.empty_shelf)
+            }
+        }
+        bindHero(tab, feature, feature === trending || tab == HomeTab.EXPLORAR && trending.isNotEmpty())
+        bindPosters(tab, shelfItems)
+        wireFocus()
+        if (!focusTouched) hero?.play?.requestFocus() else restoreFocus(lastFocusKey)
+        prefetchBadges((feature + shelfItems).distinctBy { it.kind to it.id }.take(8))
+    }
+
+    private fun showMessage(message: String) {
+        heroItems = emptyList()
+        hero = null
+        posters.clear()
+        posterCards.clear()
+        binding.heroHost.removeAllViews()
+        binding.posterRow.removeAllViews()
+        binding.catalogBlock.visibility = View.GONE
+        binding.liveBlock.visibility = View.GONE
+        binding.emptyMessage.visibility = View.VISIBLE
+        binding.emptyMessage.text = message
+        wireFocus()
+    }
+
+    private fun showSkeleton(tab: HomeTab) {
+        binding.catalogBlock.visibility = View.VISIBLE
+        binding.liveBlock.visibility = View.GONE
+        binding.emptyMessage.visibility = View.GONE
+        binding.heroHost.visibility = View.VISIBLE
+        binding.shelfTitle.visibility = View.VISIBLE
+        binding.posterScroll.visibility = View.VISIBLE
+        binding.shelfTitle.text = shelfTitle(tab)
+        val banner = ensureHero()
+        banner.showLoading()
+        binding.posterRow.removeAllViews()
+        posters.clear()
+        posterCards.clear()
+        repeat(6) {
+            val card = PosterCard(this)
+            card.showLoading()
+            val params = LinearLayout.LayoutParams(dp(112), ViewGroup.LayoutParams.MATCH_PARENT)
+            params.marginEnd = dp(12)
+            binding.posterRow.addView(card, params)
+        }
+        wireFocus()
+    }
+
+    private fun bindHero(tab: HomeTab, items: List<MediaItem>, trending: Boolean) {
+        heroItems = items
+        heroIndex = 0
+        val banner = ensureHero()
+        if (items.isEmpty()) {
+            banner.visibility = View.GONE
+            return
+        }
+        banner.visibility = View.VISIBLE
+        showHeroItem(items.first(), trending && tab == HomeTab.EXPLORAR)
+        handler.removeCallbacks(heroTick)
+        if (items.size > 1) handler.postDelayed(heroTick, config.heroSeconds * 1_000L)
+    }
+
+    private fun ensureHero(): HeroBanner {
+        hero?.let { return it }
+        val banner = HeroBanner(this)
+        banner.play.id = View.generateViewId()
+        banner.play.tag = KEY_HERO
+        banner.play.tvFocus(1.04f) { focused ->
+            if (focused) {
+                lastFocusKey = KEY_HERO
+                heroBitmap?.let { tintFrom(it) }
+            }
+        }
+        binding.heroHost.removeAllViews()
+        binding.heroHost.addView(
+            banner,
+            android.widget.FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
-                if (index == 0) 2.55f else 1f,
-            )
-            if (index != items.lastIndex) params.marginEnd = dp(16)
-            root.layoutParams = params
-            val artwork = Artwork.resId(title.artwork)
-            if (artwork != 0) poster.featureArt.setImageResource(artwork)
-            poster.featureArt.applyRoundOutline(radius, clip = true)
-            poster.featureFrame.applyRoundOutline(radius, clip = false)
-            if (Build.VERSION.SDK_INT >= 28) {
-                poster.featureFrame.outlineSpotShadowColor = 0x40000000
-                poster.featureFrame.outlineAmbientShadowColor = 0x18000000
+                ViewGroup.LayoutParams.MATCH_PARENT,
+            ),
+        )
+        hero = banner
+        return banner
+    }
+
+    private fun showHeroItem(item: MediaItem, trending: Boolean) {
+        val banner = hero ?: return
+        val meta = metaLine(item)
+        banner.bind(
+            name = item.title,
+            metaText = meta,
+            kickerText = if (trending) getString(R.string.kicker_trending) else null,
+            contentDescription = getString(R.string.poster_cd, item.title, meta),
+        )
+        banner.setAvailable(null)
+        banner.play.setOnClickListener { openDetail(item) }
+        val url = tmdbImage(item.backdropPath ?: item.posterPath, "w1280")
+        val art = banner.findViewById<android.widget.ImageView>(R.id.hero_art)
+        app().images.load(url, art) { bitmap ->
+            heroBitmap = bitmap
+            if (lastFocusKey?.startsWith("poster:") != true) tintFrom(bitmap)
+        }
+    }
+
+    private fun advanceHero() {
+        if (heroItems.size <= 1 || currentTab == HomeTab.AO_VIVO) return
+        if (lastFocusKey?.startsWith("poster:") == true) return
+        heroIndex = nextHeroIndex(heroIndex, heroItems.size)
+        val item = heroItems[heroIndex]
+        showHeroItem(item, currentTab == HomeTab.EXPLORAR)
+    }
+
+    private fun bindPosters(tab: HomeTab, items: List<MediaItem>) {
+        binding.posterRow.removeAllViews()
+        posters.clear()
+        posterCards.clear()
+        activeRow = tab.shelfId
+        items.forEachIndexed { index, item ->
+            val card = PosterCard(this)
+            val meta = metaLine(item)
+            card.bind(item.title, getString(R.string.poster_cd, item.title, meta.ifBlank { kindLabel(item) }))
+            card.id = View.generateViewId()
+            card.tag = "poster:${tab.shelfId}:${item.id}"
+            card.tvFocus(1.08f) { focused ->
+                if (!focused) return@tvFocus
+                lastFocusKey = card.tag as String
+                activeRow = tab.shelfId
+                memory.remember(tab.shelfId, index)
+                val drawn = (card.findViewById<android.widget.ImageView>(R.id.poster_art).drawable as? android.graphics.drawable.BitmapDrawable)?.bitmap
+                if (drawn != null) tintFrom(drawn)
             }
-            val kind = getString(if (title.kind == Kind.MOVIE) R.string.kind_movie else R.string.kind_series)
-            poster.featureTitle.text = title.name
-            poster.featureMeta.text = title.metadata(kind)
-            root.contentDescription = getString(R.string.poster_cd, title.name, poster.featureMeta.text)
-            root.setOnClickListener {
-                startActivity(
-                    Intent(this, DetailActivity::class.java)
-                        .putExtra(DetailActivity.EXTRA_TITLE_ID, title.id),
-                )
+            card.setOnClickListener { openDetail(item) }
+            val params = LinearLayout.LayoutParams(dp(112), ViewGroup.LayoutParams.MATCH_PARENT)
+            params.marginEnd = dp(12)
+            binding.posterRow.addView(card, params)
+            posters += card
+            posterCards[keyOf(item)] = card
+            val url = tmdbImage(item.posterPath ?: item.backdropPath, "w342")
+            app().images.load(url, card.findViewById(R.id.poster_art)) { bitmap ->
+                card.setArt(bitmap)
+                if (card.hasFocus()) tintFrom(bitmap)
             }
-            watchFocus(root, "title:${title.id}", scale = 1.035f)
-            binding.featuredRow.addView(root)
-            featuredFocus += root
+        }
+    }
+
+    private fun prefetchBadges(items: List<MediaItem>) {
+        val generation = loadGeneration
+        app().io.execute {
+            val tmdb = app().tmdb()
+            for (item in items) {
+                if (generation != loadGeneration) return@execute
+                val details = tmdb.details(item.kind, item.id) as? Load.Ready ?: continue
+                val offer = details.value.offers.firstOrNull { it.kind != OfferKind.RENT && it.kind != OfferKind.BUY }
+                    ?: details.value.offers.firstOrNull()
+                val label = offer?.let { matchProvider(it.providerId, it.providerName)?.label ?: it.providerName }
+                runOnUiThread {
+                    if (generation != loadGeneration) return@runOnUiThread
+                    posterCards[keyOf(item)]?.setBadge(label)
+                    val featured = heroItems.getOrNull(heroIndex)
+                    if (featured != null && featured.id == item.id && featured.kind == item.kind) {
+                        hero?.setAvailable(label)
+                    }
+                }
+            }
+        }
+    }
+
+    private fun showLive() {
+        handler.removeCallbacks(heroTick)
+        loadGeneration++
+        binding.catalogBlock.visibility = View.GONE
+        binding.emptyMessage.visibility = View.GONE
+        binding.liveBlock.visibility = View.VISIBLE
+        val installed = installedPackages()
+        binding.channelRow.removeAllViews()
+        binding.freeRow.removeAllViews()
+        channels.clear()
+        freebies.clear()
+        dev.enzotraini.tvlauncher.model.LiveCatalog.channels.forEachIndexed { index, channel ->
+            val target = resolveChannel(channel, installed, config.liveTvPackage)
+            val card = ChannelCard(this)
+            val hint = channelHint(target, channel.appLabel)
+            card.bind(channel.name, hint, dark = true, showLive = true)
+            card.id = View.generateViewId()
+            card.tag = "channel:${channel.id}"
+            card.tvFocus(1.06f) { focused ->
+                if (focused) {
+                    lastFocusKey = card.tag as String
+                    activeRow = ROW_CHANNELS
+                    memory.remember(ROW_CHANNELS, index)
+                }
+            }
+            card.setOnClickListener { openChannel(target, channel.name) }
+            addRowCard(binding.channelRow, card, 156, 12)
+            channels += card
+        }
+        dev.enzotraini.tvlauncher.model.LiveCatalog.free.forEachIndexed { index, service ->
+            val installedPackage = resolveService(service, installed)
+            val card = ChannelCard(this)
+            val hint = if (installedPackage == null) getString(R.string.not_installed) else getString(R.string.free_badge)
+            card.bind(service.name, hint, dark = false, showLive = false)
+            card.id = View.generateViewId()
+            card.tag = "free:${service.id}"
+            card.tvFocus(1.06f) { focused ->
+                if (focused) {
+                    lastFocusKey = card.tag as String
+                    activeRow = ROW_FREE
+                    memory.remember(ROW_FREE, index)
+                }
+            }
+            card.setOnClickListener {
+                if (installedPackage == null || !installedApps.openPackage(installedPackage)) {
+                    Toast.makeText(this, getString(R.string.app_missing, service.name), Toast.LENGTH_SHORT).show()
+                }
+            }
+            addRowCard(binding.freeRow, card, 156, 12)
+            freebies += card
+        }
+        activeRow = ROW_CHANNELS
+        wireFocus()
+        if (!focusTouched) channels.firstOrNull()?.requestFocus()
+    }
+
+    private fun openChannel(target: dev.enzotraini.tvlauncher.model.ChannelTarget, name: String) {
+        when (target) {
+            is dev.enzotraini.tvlauncher.model.ChannelTarget.App -> {
+                if (!installedApps.openPackage(target.packageName)) {
+                    Toast.makeText(this, getString(R.string.app_missing, name), Toast.LENGTH_SHORT).show()
+                }
+            }
+            is dev.enzotraini.tvlauncher.model.ChannelTarget.Tuner -> {
+                if (!installedApps.openPackage(target.packageName)) {
+                    Toast.makeText(this, R.string.live_tv_missing, Toast.LENGTH_SHORT).show()
+                }
+            }
+            dev.enzotraini.tvlauncher.model.ChannelTarget.Unavailable -> {
+                Toast.makeText(this, R.string.live_tv_missing, Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun loadWeather() {
+        val city = config.weatherCity
+        binding.weatherText.contentDescription = getString(R.string.weather_cd, city)
+        app().io.execute {
+            val result = app().weather().current(config.weatherLatitude, config.weatherLongitude)
+            runOnUiThread {
+                val ready = result as? Load.Ready
+                if (ready == null) {
+                    binding.weatherText.text = city
+                    return@runOnUiThread
+                }
+                binding.weatherText.text = temperatureLabel(ready.value.celsius, city)
+                binding.weatherIcon.visibility = View.VISIBLE
+                if (ready.value.kind == WeatherKind.UNKNOWN) {
+                    binding.weatherIcon.alpha = 0.7f
+                }
+            }
         }
     }
 
@@ -219,7 +584,7 @@ class HomeActivity : TvActivity() {
         val byPackage = apps.associateBy { it.packageName }
         val slots = planDock(config.dockEntries, byPackage.keys)
         binding.dockRow.removeAllViews()
-        dockFocus.clear()
+        dockViews.clear()
         for (slot in slots) {
             val installedApp = byPackage[slot.packageName]
             val installed = installedApp != null && slot.installed
@@ -234,11 +599,7 @@ class HomeActivity : TvActivity() {
                 fontRes = brand.fontRes,
                 markRes = brand.markRes,
                 markSizeDp = if (brand.markRes != 0) 18 else 0,
-                contentDescription = if (installed) {
-                    slot.label
-                } else {
-                    getString(R.string.dock_missing_cd, slot.label)
-                },
+                contentDescription = if (installed) slot.label else getString(R.string.dock_missing_cd, slot.label),
                 focusKey = "dock:${slot.packageName}",
             ) {
                 if (installedApp != null && slot.installed) {
@@ -286,7 +647,7 @@ class HomeActivity : TvActivity() {
         root.id = View.generateViewId()
         val frameParams = item.dockFrame.layoutParams
         frameParams.width = dp(widthDp)
-        frameParams.height = dp(50)
+        frameParams.height = dp(48)
         item.dockFrame.layoutParams = frameParams
         item.dockFrame.background = getDrawable(backgroundRes)?.mutate()
         item.dockFrame.applyRoundOutline(resources.getDimension(R.dimen.dock_tile_radius), clip = true)
@@ -318,103 +679,94 @@ class HomeActivity : TvActivity() {
         params.marginEnd = dp(6)
         root.layoutParams = params
         root.contentDescription = contentDescription
+        root.tag = focusKey
         root.setOnClickListener { onClick() }
-        watchFocus(root, focusKey, 1.06f)
+        root.tvFocus(1.06f) { focused ->
+            if (focused) lastFocusKey = focusKey
+        }
         binding.dockRow.addView(root)
-        dockFocus += root
+        dockViews += root
     }
 
     private fun wireFocus() {
-        val top = buildList {
-            tabViews.mapTo(this) { it.binding.tabLabel }
-            add(binding.castButton)
-            add(binding.editButton)
-            add(binding.settingsButton)
+        val tabs = tabViews.map { it.label } + binding.settingsButton
+        val rows = mutableListOf<List<View>>()
+        if (tabs.isNotEmpty()) rows += tabs
+        val play = hero?.play?.takeIf { it.isShown && currentTab != HomeTab.AO_VIVO }
+        if (play != null) rows += listOf(play)
+        val row = currentRow()
+        if (currentTab == HomeTab.AO_VIVO) {
+            if (channels.isNotEmpty()) rows += channels.toList()
+            if (freebies.isNotEmpty()) rows += freebies.toList()
+        } else if (posters.isNotEmpty()) {
+            rows += posters.toList()
         }
-        val rows = buildList {
-            if (top.isNotEmpty()) add(top)
-            if (featuredFocus.isNotEmpty()) add(featuredFocus.toList())
-            if (dockFocus.isNotEmpty()) add(dockFocus.toList())
-        }
+        if (dockViews.isNotEmpty()) rows += dockViews.toList()
         Dpad.stack(rows)
+        val remembered = row.getOrNull(memory.recall(activeRow, row.size))
+        val downFromTabs = play?.id ?: remembered?.id ?: dockViews.firstOrNull()?.id ?: View.NO_ID
+        selectedTab()?.nextFocusDownId = downFromTabs
+        binding.settingsButton.nextFocusDownId = downFromTabs
+        if (play != null && remembered != null) play.nextFocusDownId = remembered.id
+        if (play != null) play.nextFocusUpId = selectedTab()?.id ?: play.id
+        if (remembered != null) {
+            dockViews.forEach { it.nextFocusUpId = remembered.id }
+            if (play != null) posters.forEach { it.nextFocusUpId = play.id }
+        }
     }
 
-    private fun watchFocus(
-        view: View,
-        key: String,
-        scale: Float = 1.06f,
-        onFocus: (Boolean) -> Unit = {},
-    ) {
-        view.tag = key
-        view.isFocusableInTouchMode = true
-        view.setOnFocusChangeListener { target, hasFocus ->
-            target.animate().cancel()
-            target.animate()
-                .scaleX(if (hasFocus) scale else 1f)
-                .scaleY(if (hasFocus) scale else 1f)
-                .setDuration(if (hasFocus) 160 else 120)
-                .setInterpolator(DecelerateInterpolator())
-                .start()
-            target.translationZ = if (hasFocus) resources.getDimension(R.dimen.focus_elevation) else 0f
-            if (hasFocus) {
-                lastFocusKey = key
-                target.requestRectangleOnScreen(Rect(0, 0, target.width, target.height), false)
-            }
-            onFocus(hasFocus)
+    private fun currentRow(): List<View> {
+        return when (currentTab) {
+            HomeTab.AO_VIVO -> if (activeRow == ROW_CHANNELS && channels.isNotEmpty()) channels else freebies.ifEmpty { channels }
+            else -> posters
         }
+    }
+
+    private fun focusBand(band: HomeBand) {
+        val target = when (band) {
+            HomeBand.TABS -> selectedTab()
+            HomeBand.HERO -> hero?.play
+            HomeBand.ROW -> currentRow().getOrNull(memory.recall(activeRow, currentRow().size))
+            HomeBand.DOCK -> dockViews.firstOrNull()
+        } ?: selectedTab() ?: dockViews.firstOrNull()
+        target?.requestFocus()
     }
 
     private fun restoreFocus(key: String?) {
         val tagged = key?.let { binding.root.findViewWithTag<View>(it) }
-        val filmes = tabViews.firstOrNull { it.tab == HomeTab.FILMES }?.binding?.tabLabel
-        val target = tagged
-            ?: filmes
-            ?: featuredFocus.firstOrNull()
-            ?: dockFocus.firstOrNull()
-            ?: binding.settingsButton
+        val target = tagged ?: hero?.play?.takeIf { it.isShown } ?: posters.firstOrNull()
+            ?: channels.firstOrNull() ?: selectedTab() ?: dockViews.firstOrNull() ?: binding.settingsButton
         target.requestFocus()
     }
 
-    private fun openCast() {
-        val actions = listOf(
-            "android.settings.CAST_SETTINGS",
-            "android.settings.WIFI_DISPLAY_SETTINGS",
-        )
-        for (action in actions) {
-            val intent = Intent(action).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            val resolved = try {
-                intent.resolveActivity(packageManager) != null
-            } catch (_: RuntimeException) {
-                false
-            }
-            if (!resolved) continue
-            try {
-                startActivity(intent)
-                return
-            } catch (_: RuntimeException) {
-                continue
+    private fun tintFrom(bitmap: Bitmap) {
+        val token = ++tintToken
+        app().io.execute {
+            val color = try {
+                val palette = Palette.from(bitmap).maximumColorCount(12).generate()
+                palette.vibrantSwatch?.rgb ?: palette.dominantSwatch?.rgb
+            } catch (_: Exception) {
+                null
+            } ?: return@execute
+            val tint = pageTint(color)
+            runOnUiThread {
+                if (token != tintToken) return@runOnUiThread
+                binding.homeRoot.animatePageColor(tint)
             }
         }
-        Toast.makeText(this, R.string.cast_unavailable, Toast.LENGTH_SHORT).show()
     }
 
-    private fun openAppSettings() {
-        val intent = Intent(Settings.ACTION_APPLICATION_SETTINGS)
-            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        val resolved = try {
-            intent.resolveActivity(packageManager) != null
-        } catch (_: RuntimeException) {
-            false
-        }
-        if (!resolved) {
-            Toast.makeText(this, R.string.edit_unavailable, Toast.LENGTH_SHORT).show()
-            return
-        }
-        try {
-            startActivity(intent)
-        } catch (_: RuntimeException) {
-            Toast.makeText(this, R.string.edit_unavailable, Toast.LENGTH_SHORT).show()
-        }
+    private fun openDetail(item: MediaItem) {
+        startActivity(
+            Intent(this, DetailActivity::class.java)
+                .putExtra(DetailActivity.EXTRA_KIND, if (item.kind == MediaKind.MOVIE) "movie" else "series")
+                .putExtra(DetailActivity.EXTRA_ID, item.id),
+        )
+    }
+
+    private fun installedPackages(): Set<String> {
+        val names = dev.enzotraini.tvlauncher.model.LiveCatalog.installedPackages() + config.liveTvPackage
+        return names.filter { installedApps.isInstalled(it) }.toSet()
     }
 
     private fun registerPackages() {
@@ -425,42 +777,64 @@ class HomeActivity : TvActivity() {
             addDataScheme("package")
         }
         try {
-            registerSystem(packageReceiver, filter)
+            if (Build.VERSION.SDK_INT >= 33) {
+                registerReceiver(packageReceiver, filter, RECEIVER_EXPORTED)
+            } else {
+                @Suppress("UnspecifiedRegisterReceiverFlag")
+                registerReceiver(packageReceiver, filter)
+            }
             packagesRegistered = true
         } catch (_: RuntimeException) {
             packagesRegistered = false
         }
     }
 
-    private fun registerSystem(receiver: BroadcastReceiver, filter: IntentFilter) {
-        if (Build.VERSION.SDK_INT >= 33) {
-            registerReceiver(receiver, filter, RECEIVER_EXPORTED)
-        } else {
-            @Suppress("UnspecifiedRegisterReceiverFlag")
-            registerReceiver(receiver, filter)
-        }
+    private fun selectedTab(): View? = tabViews.firstOrNull { it.tab == currentTab }?.label
+
+    private fun tabLabel(tab: HomeTab): Int = when (tab) {
+        HomeTab.EXPLORAR -> R.string.tab_explorar
+        HomeTab.FILMES -> R.string.tab_filmes
+        HomeTab.SERIES -> R.string.tab_series
+        HomeTab.AO_VIVO -> R.string.tab_ao_vivo
     }
 
-    private fun tabLabel(tab: HomeTab): Int {
-        return when (tab) {
-            HomeTab.EXPLORAR -> R.string.tab_explorar
-            HomeTab.FILMES -> R.string.tab_filmes
-            HomeTab.SERIES -> R.string.tab_series
-        }
+    private fun shelfTitle(tab: HomeTab): String = when (tab) {
+        HomeTab.EXPLORAR -> getString(R.string.shelf_week)
+        HomeTab.FILMES -> getString(R.string.shelf_movies)
+        HomeTab.SERIES -> getString(R.string.shelf_series)
+        HomeTab.AO_VIVO -> getString(R.string.shelf_channels)
     }
 
-    private fun dp(value: Int): Int {
-        return (value * resources.displayMetrics.density).roundToInt()
+    private fun kindLabel(item: MediaItem): String {
+        return getString(if (item.kind == MediaKind.MOVIE) R.string.kind_movie else R.string.kind_series)
     }
 
-    private data class TabSlot(val tab: HomeTab, val binding: ViewTabBinding)
+    private fun addRowCard(row: LinearLayout, view: View, widthDp: Int, gapDp: Int) {
+        val params = LinearLayout.LayoutParams(dp(widthDp), ViewGroup.LayoutParams.MATCH_PARENT)
+        params.marginEnd = dp(gapDp)
+        row.addView(view, params)
+    }
+
+    private fun bandOf(key: String?): HomeBand = when {
+        key == null -> HomeBand.TABS
+        key.startsWith("tab:") || key == KEY_ENTRADAS -> HomeBand.TABS
+        key == KEY_HERO -> HomeBand.HERO
+        key.startsWith("poster:") || key.startsWith("channel:") || key.startsWith("free:") -> HomeBand.ROW
+        key.startsWith("dock:") || key == KEY_ALL_APPS -> HomeBand.DOCK
+        else -> HomeBand.TABS
+    }
+
+    private fun keyOf(item: MediaItem): String = "${item.kind}:${item.id}"
+
+    private data class TabSlot(val tab: HomeTab, val label: TextView)
 
     companion object {
         private const val STATE_FOCUS = "focus"
         private const val STATE_TAB = "tab"
         private const val KEY_ENTRADAS = "entradas"
-        private const val KEY_CAST = "cast"
-        private const val KEY_EDIT = "edit"
+        private const val KEY_HERO = "hero"
         private const val KEY_ALL_APPS = "todos"
+        private const val ROW_CHANNELS = "channels"
+        private const val ROW_FREE = "free"
     }
 }

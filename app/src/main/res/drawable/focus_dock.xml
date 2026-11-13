@@ -5,7 +5,7 @@
             <solid android:color="@android:color/transparent" />
             <stroke
                 android:width="2.5dp"
-                android:color="@color/ink" />
+                android:color="@color/accent" />
             <corners android:radius="@dimen/dock_tile_radius" />
         </shape>
     </item>
