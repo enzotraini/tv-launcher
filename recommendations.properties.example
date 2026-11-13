@@ -1,6 +1,9 @@
 # Copie para recommendations.properties na raiz do repositório.
 # Esse arquivo entra no .gitignore. Não commite a chave.
 #
-# Uma versão futura pode ler tmdb.api.key aqui, dentro de uma
-# RecommendationsSource nova. O app de hoje não usa rede.
+# A chave é a API Key v3, grátis, criada em
+# https://www.themoviedb.org/settings/api
+# O app lê tmdb.api.key na hora de compilar e grava em BuildConfig.
+# Sem esse arquivo, ou com a chave vazia, a home abre vazia.
+# Não há título de reserva.
 tmdb.api.key=

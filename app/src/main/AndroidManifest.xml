@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <uses-permission android:name="android.permission.INTERNET" />
+
     <uses-feature
         android:name="android.software.leanback"
         android:required="false" />
@@ -8,7 +10,7 @@
         android:name="android.hardware.touchscreen"
         android:required="false" />
 
-    <!-- Enxerga apps com tela, sem QUERY_ALL_PACKAGES. -->
+    <!-- Enxerga apps com tela e os pacotes oficiais que o launcher abre. -->
     <queries>
         <intent>
             <action android:name="android.intent.action.MAIN" />
@@ -18,9 +20,34 @@
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.LAUNCHER" />
         </intent>
+        <package android:name="com.tcl.tv" />
+        <package android:name="com.tcl.suspension" />
+        <package android:name="com.android.tv.settings" />
+        <package android:name="com.google.android.tv" />
+        <package android:name="com.netflix.ninja" />
+        <package android:name="com.google.android.youtube.tv" />
+        <package android:name="com.google.android.youtube" />
+        <package android:name="com.globo.globotv" />
+        <package android:name="com.amazon.amazonvideo.livingroom" />
+        <package android:name="com.disney.disneyplus" />
+        <package android:name="com.stremio.one" />
+        <package android:name="br.com.band.guiatv" />
+        <package android:name="br.com.sbt.mais" />
+        <package android:name="com.mobilus.recordplay.tv" />
+        <package android:name="com.mobilus.recordplay" />
+        <package android:name="tv.pluto.android" />
+        <package android:name="com.plexapp.android" />
+        <package android:name="org.libreflix.app" />
+        <package android:name="com.eitv.spcineplay" />
+        <package android:name="com.wbd.stream" />
+        <package android:name="com.cbs.ott" />
+        <package android:name="com.crunchyroll.crunchyroid" />
+        <package android:name="com.apple.atve.androidtv.appletv" />
+        <package android:name="com.google.android.videos" />
     </queries>
 
     <application
+        android:name=".App"
         android:allowBackup="false"
         android:banner="@drawable/tv_banner"
         android:enableOnBackInvokedCallback="false"
@@ -63,5 +90,32 @@
             android:name=".DetailActivity"
             android:exported="false"
             android:screenOrientation="landscape" />
+
+        <activity
+            android:name=".WallpapersActivity"
+            android:exported="true"
+            android:launchMode="singleTop"
+            android:screenOrientation="landscape" />
+
+        <activity
+            android:name=".AmbientActivity"
+            android:exported="false"
+            android:launchMode="singleTask"
+            android:screenOrientation="landscape"
+            android:theme="@style/Theme.ParaVoce.Night" />
+
+        <service
+            android:name=".ambient.AmbientDream"
+            android:exported="true"
+            android:label="@string/ambient_name"
+            android:permission="android.permission.BIND_DREAM_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.dreams.DreamService" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+            <meta-data
+                android:name="android.service.dream"
+                android:resource="@xml/ambient_dream" />
+        </service>
     </application>
 </manifest>

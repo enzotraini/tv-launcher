@@ -1,11 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <dimen name="space_1">8dp</dimen>
+    <dimen name="space_2">16dp</dimen>
+    <dimen name="space_3">24dp</dimen>
+    <dimen name="space_4">32dp</dimen>
+    <dimen name="space_6">48dp</dimen>
     <dimen name="screen_padding">48dp</dimen>
+    <dimen name="text_display">64sp</dimen>
+    <dimen name="text_title">40sp</dimen>
+    <dimen name="text_subtitle">28sp</dimen>
+    <dimen name="text_body">22sp</dimen>
+    <dimen name="text_caption">18sp</dimen>
+    <dimen name="text_poster">16sp</dimen>
+    <dimen name="radius_12">12dp</dimen>
+    <dimen name="radius_20">20dp</dimen>
+    <dimen name="poster_radius">12dp</dimen>
+    <dimen name="dock_tile_radius">12dp</dimen>
+    <dimen name="dock_tile_height">48dp</dimen>
+    <dimen name="elevation_soft">8dp</dimen>
+    <dimen name="elevation_focus">12dp</dimen>
+    <dimen name="focus_elevation">12dp</dimen>
     <dimen name="dock_icon">56dp</dimen>
-    <dimen name="focus_elevation">8dp</dimen>
-    <dimen name="corner">16dp</dimen>
-    <dimen name="poster_radius">22dp</dimen>
-    <dimen name="dock_tile_radius">14dp</dimen>
-    <dimen name="dock_tile_height">50dp</dimen>
-    <dimen name="icon_button">42dp</dimen>
+    <dimen name="corner">20dp</dimen>
+    <dimen name="icon_button">44dp</dimen>
+    <dimen name="poster_width">124dp</dimen>
+    <dimen name="poster_height">124dp</dimen>
 </resources>
