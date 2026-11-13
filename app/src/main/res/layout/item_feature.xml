@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/feature_root"
+    android:layout_width="0dp"
+    android:layout_height="match_parent"
+    android:clickable="true"
+    android:clipChildren="false"
+    android:focusable="true"
+    android:orientation="vertical"
+    android:paddingBottom="8dp">
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:clipChildren="false">
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_marginStart="14dp"
+            android:layout_marginTop="14dp"
+            android:layout_marginEnd="14dp"
+            android:layout_marginBottom="-8dp"
+            android:background="@drawable/poster_shadow" />
+
+        <FrameLayout
+            android:id="@+id/feature_frame"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@drawable/poster_surface"
+            android:duplicateParentState="true"
+            android:elevation="8dp"
+            android:foreground="@drawable/focus_poster">
+
+            <dev.enzotraini.tvlauncher.ui.RoundedImageView
+                android:id="@+id/feature_art"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:contentDescription="@null"
+                android:importantForAccessibility="no"
+                android:scaleType="centerCrop" />
+        </FrameLayout>
+    </FrameLayout>
+
+    <TextView
+        android:id="@+id/feature_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="14dp"
+        android:ellipsize="end"
+        android:fontFamily="@font/inter_semibold"
+        android:includeFontPadding="false"
+        android:maxLines="1"
+        android:textColor="@color/ink"
+        android:textSize="16sp" />
+
+    <TextView
+        android:id="@+id/feature_meta"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="3dp"
+        android:ellipsize="end"
+        android:fontFamily="@font/inter_regular"
+        android:includeFontPadding="false"
+        android:maxLines="1"
+        android:textColor="@color/muted"
+        android:textSize="13sp" />
+</LinearLayout>

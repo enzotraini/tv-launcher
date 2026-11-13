@@ -7,15 +7,30 @@ enum class Kind {
     SERIES,
 }
 
+enum class HomeTab(val shelfId: String) {
+    EXPLORAR("explorar"),
+    FILMES("filmes"),
+    SERIES("series"),
+    ;
+
+    companion object {
+        fun fromId(id: String?): HomeTab = entries.firstOrNull { it.shelfId == id } ?: FILMES
+    }
+}
+
 data class Title(
     val id: String,
     val name: String,
     val kind: Kind,
     val year: Int,
+    val genre: String,
+    val detail: String,
     val blurb: String,
-    val accent: Int,
-    val progress: Float? = null,
+    val artwork: String,
+    val hero: Boolean = false,
 )
+
+fun Title.metadata(kindLabel: String): String = "$kindLabel · $genre · $detail"
 
 data class Shelf(
     val id: String,
@@ -23,12 +38,18 @@ data class Shelf(
     val items: List<Title>,
 )
 
+fun Shelf.featured(): List<Title> {
+    if (items.isEmpty()) return emptyList()
+    val hero = items.firstOrNull { it.hero } ?: items.first()
+    return listOf(hero) + items.filter { it.id != hero.id }
+}
+
 /**
- * Fonte das prateleiras da home.
+ * Fonte das fileiras da home.
  *
- * A implementação atual é [StaticRecommendations]: cartazes desenhados no
- * aparelho, sem rede. Para trocar por TMDB ou outra API, implemente esta
- * interface e devolva a fonte nova em [RecommendationCatalog.current].
+ * A implementação atual é [StaticRecommendations]: fotos originais no APK,
+ * títulos fictícios, sem rede. Para trocar por TMDB ou outra API, implemente
+ * esta interface e devolva a fonte nova em [RecommendationCatalog.current].
  * A chave fica em recommendations.properties (veja o .example), que está
  * no .gitignore. Não coloque a chave no git.
  */
@@ -68,201 +89,125 @@ private fun movie(
     id: String,
     name: String,
     year: Int,
+    genre: String,
+    detail: String,
     blurb: String,
-    accent: Long,
-    progress: Float? = null,
-) = Title(id, name, Kind.MOVIE, year, blurb, accent.toInt(), progress)
+    artwork: String,
+    hero: Boolean = false,
+) = Title(id, name, Kind.MOVIE, year, genre, detail, blurb, artwork, hero)
 
 private fun series(
     id: String,
     name: String,
     year: Int,
+    genre: String,
+    detail: String,
     blurb: String,
-    accent: Long,
-    progress: Float? = null,
-) = Title(id, name, Kind.SERIES, year, blurb, accent.toInt(), progress)
+    artwork: String,
+    hero: Boolean = false,
+) = Title(id, name, Kind.SERIES, year, genre, detail, blurb, artwork, hero)
 
 object StaticRecommendations : RecommendationsSource {
     override fun shelves(): List<Shelf> = listOf(
         Shelf(
-            id = "continuar",
-            title = "Continuar assistindo",
+            id = "explorar",
+            title = "Explorar",
             items = listOf(
                 movie(
-                    "cont-ainda",
-                    "Ainda Estou Aqui",
-                    2024,
-                    "Uma família no Rio espera um pai que a ditadura não devolve.",
-                    0xFF1F4E5F,
-                    0.35f,
-                ),
-                series(
-                    "cont-shogun",
-                    "Shōgun",
-                    2024,
-                    "Um navio inglês aporta no Japão e cada tradução muda o destino.",
-                    0xFF3E3A55,
-                    0.62f,
-                ),
-                series(
-                    "cont-bear",
-                    "The Bear",
-                    2022,
-                    "Uma cozinha pequena tenta servir bem sem se queimar no caminho.",
-                    0xFF6B3A2A,
-                    0.18f,
+                    "luz-inverno",
+                    "Luz de Inverno",
+                    2018,
+                    "Drama",
+                    "1h 58 min",
+                    "Um pintor volta à cidade costeira no inverno para terminar um quadro que a luz não deixa.",
+                    "luz_inverno",
+                    hero = true,
                 ),
                 movie(
-                    "cont-senna",
-                    "Senna",
-                    2010,
-                    "A carreira de Ayrton contada com o que a pista já tinha filmado.",
-                    0xFF1E4D45,
-                    0.80f,
+                    "estrada-sal",
+                    "Estrada de Sal",
+                    2017,
+                    "Aventura",
+                    "2h 05 min",
+                    "Uma mecânica cruza o salar num carro que só liga quando o horizonte está reto.",
+                    "estrada_sal",
+                ),
+                movie(
+                    "porto-quieto",
+                    "Porto Quieto",
+                    2016,
+                    "Suspense",
+                    "1h 42 min",
+                    "Um barco volta ao porto sem a tripulação e com a cabine ainda acesa.",
+                    "porto_quieto",
                 ),
             ),
         ),
         Shelf(
             id = "filmes",
-            title = "Filmes para você",
+            title = "Filmes",
             items = listOf(
-                movie(
-                    "filme-duna",
-                    "Duna: Parte Dois",
+                series(
+                    "noite-estacao",
+                    "Noite na Estação",
                     2024,
-                    "Areia, profecia e uma guerra que a primeira parte só prometeu.",
-                    0xFF8C4A2F,
+                    "Mistério",
+                    "1 temporada",
+                    "Uma arquivista volta à estação fechada e encontra o corredor aceso, com fogo no chão.",
+                    "noite_estacao",
+                    hero = true,
                 ),
                 movie(
-                    "filme-ainda",
-                    "Ainda Estou Aqui",
-                    2024,
-                    "Uma família no Rio espera um pai que a ditadura não devolve.",
-                    0xFF1F4E5F,
+                    "sombras-chuva",
+                    "Sombras da Chuva",
+                    2023,
+                    "Drama",
+                    "2h 15 min",
+                    "Um investigador atravessa a cidade molhada atrás de um nome que só aparece nas poças.",
+                    "sombras_chuva",
                 ),
                 movie(
-                    "filme-interestelar",
-                    "Interestelar",
-                    2014,
-                    "Um pai atravessa o tempo procurando um lugar para os filhos.",
-                    0xFF1B2A4A,
-                ),
-                movie(
-                    "filme-parasita",
-                    "Parasita",
-                    2019,
-                    "Duas famílias dividem a mesma casa e nenhum dos planos cabe nela.",
-                    0xFF2F4F3E,
-                ),
-                movie(
-                    "filme-chefao",
-                    "O Poderoso Chefão",
-                    1972,
-                    "Um casamento abre a história de uma família que não passa o bastão em paz.",
-                    0xFF4A2C2C,
-                ),
-                movie(
-                    "filme-madmax",
-                    "Mad Max: Estrada da Fúria",
-                    2015,
-                    "Uma perseguição no deserto que quase não troca de marcha.",
-                    0xFF8A3E1D,
+                    "chamado-floresta",
+                    "O Chamado da Floresta",
+                    2022,
+                    "Aventura",
+                    "1h 50 min",
+                    "Um homem entra na mata fechada seguindo um chamado que não vem de voz nenhuma.",
+                    "chamado_floresta",
                 ),
             ),
         ),
         Shelf(
             id = "series",
-            title = "Séries para você",
+            title = "Séries",
             items = listOf(
                 series(
-                    "serie-shogun",
-                    "Shōgun",
-                    2024,
-                    "Um navio inglês aporta no Japão e cada tradução muda o destino.",
-                    0xFF3E3A55,
-                ),
-                series(
-                    "serie-bear",
-                    "The Bear",
-                    2022,
-                    "Uma cozinha pequena tenta servir bem sem se queimar no caminho.",
-                    0xFF6B3A2A,
-                ),
-                series(
-                    "serie-succession",
-                    "Succession",
-                    2018,
-                    "Os filhos de um magnata disputam a empresa como quem disputa o almoço.",
-                    0xFF243028,
-                ),
-                series(
-                    "serie-round6",
-                    "Round 6",
+                    "casa-sem-numero",
+                    "A Casa sem Número",
                     2021,
-                    "Brincadeiras de infância com uma dívida que não aceita empate.",
-                    0xFF8C3A4A,
+                    "Suspense",
+                    "1 temporada",
+                    "A família muda para uma casa que a rua insiste em não numerar.",
+                    "casa_sem_numero",
+                    hero = true,
                 ),
                 series(
-                    "serie-dark",
-                    "Dark",
-                    2017,
-                    "Uma cidade, uma caverna e um relógio fora do calendário.",
-                    0xFF2C3D4F,
+                    "mare-vidro",
+                    "Maré de Vidro",
+                    2020,
+                    "Drama",
+                    "2 temporadas",
+                    "Duas irmãs herdam um farol e um vidro que só embaça quando a maré mente.",
+                    "mare_vidro",
                 ),
                 series(
-                    "serie-lastofus",
-                    "The Last of Us",
-                    2023,
-                    "Uma viagem longa por um país vazio, com pouca gente para confiar.",
-                    0xFF3F4A32,
-                ),
-            ),
-        ),
-        Shelf(
-            id = "brasil",
-            title = "Feito no Brasil",
-            items = listOf(
-                movie(
-                    "br-cidade",
-                    "Cidade de Deus",
-                    2002,
-                    "A favela cresce no quadro de quem preferiu a câmera.",
-                    0xFF7A3E2E,
-                ),
-                movie(
-                    "br-central",
-                    "Central do Brasil",
-                    1998,
-                    "Uma carta atrasada põe um menino e uma mulher na estrada.",
-                    0xFF3D4F6B,
-                ),
-                movie(
-                    "br-senna",
-                    "Senna",
-                    2010,
-                    "A carreira de Ayrton contada com o que a pista já tinha filmado.",
-                    0xFF1E4D45,
-                ),
-                movie(
-                    "br-auto",
-                    "O Auto da Compadecida",
-                    2000,
-                    "João Grilo argumenta até na hora em que ninguém costuma ter a última palavra.",
-                    0xFF6B5428,
-                ),
-                movie(
-                    "br-tropa",
-                    "Tropa de Elite",
-                    2007,
-                    "O BOPE sobe o morro e a cidade assiste sem escolher um lado.",
-                    0xFF2A2E33,
-                ),
-                movie(
-                    "br-marte",
-                    "Marte Um",
-                    2022,
-                    "Um menino em Contagem treina para o espaço enquanto a casa pede outro plano.",
-                    0xFF1F3F5B,
+                    "arquivo-mares",
+                    "O Arquivo das Marés",
+                    2019,
+                    "Mistério",
+                    "1 temporada",
+                    "Num porão de mapas molhados, cada gaveta guarda uma cidade que a água já levou.",
+                    "arquivo_mares",
                 ),
             ),
         ),

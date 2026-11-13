@@ -4,6 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/bg"
+    android:clipChildren="false"
     android:focusable="true"
     android:gravity="center_vertical"
     android:orientation="horizontal"
@@ -11,13 +12,19 @@
     android:paddingEnd="64dp">
 
     <FrameLayout
-        android:layout_width="260dp"
-        android:layout_height="390dp">
+        android:id="@+id/detail_frame"
+        android:layout_width="300dp"
+        android:layout_height="450dp"
+        android:background="@drawable/poster_surface"
+        android:elevation="10dp">
 
-        <dev.enzotraini.tvlauncher.ui.PosterArt
+        <dev.enzotraini.tvlauncher.ui.RoundedImageView
             android:id="@+id/detail_art"
             android:layout_width="match_parent"
-            android:layout_height="match_parent" />
+            android:layout_height="match_parent"
+            android:contentDescription="@null"
+            android:importantForAccessibility="no"
+            android:scaleType="centerCrop" />
     </FrameLayout>
 
     <LinearLayout
@@ -31,15 +38,17 @@
             android:id="@+id/detail_kind"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:fontFamily="@font/inter_regular"
             android:textColor="@color/muted"
-            android:textSize="14sp" />
+            android:textSize="15sp" />
 
         <TextView
             android:id="@+id/detail_title"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="6dp"
-            android:fontFamily="sans-serif-light"
+            android:fontFamily="@font/inter_bold"
+            android:includeFontPadding="false"
             android:textColor="@color/ink"
             android:textSize="40sp" />
 
@@ -48,23 +57,16 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
+            android:fontFamily="@font/inter_regular"
             android:lineSpacingExtra="4dp"
             android:textColor="@color/ink"
             android:textSize="18sp" />
 
         <TextView
-            android:id="@+id/detail_progress"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="14dp"
-            android:textColor="@color/accent"
-            android:textSize="15sp"
-            android:visibility="gone" />
-
-        <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="22dp"
+            android:fontFamily="@font/inter_regular"
             android:text="@string/detail_footnote"
             android:textColor="@color/muted"
             android:textSize="14sp" />

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
   Dock e atalhos. A ordem de dock_apps e dock_labels é a mesma, da esquerda para a direita.
-  App que não estiver instalado continua no dock, apagado, com o nome.
+  App que não estiver instalado continua no dock. Ao abrir, um aviso explica.
   Para achar um pacote na TV:
     tools/venv/bin/python tools/tv.py 'pm list packages'
   Depois de editar, gere de novo e reinstale: tools/install-launcher.sh

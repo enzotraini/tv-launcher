@@ -8,12 +8,12 @@ A interface não segue o visual escuro de Apple TV. O cliente ADB e o debloat re
 
 ## O que aparece na TV
 
-- Fundo claro, título **Para você**, saudação e relógio.
-- Prateleiras horizontais com cartazes desenhados no próprio app. Os títulos são um catálogo estático, sem rede e sem pôster de estúdio.
-- Dock, nesta ordem: Netflix, YouTube, Globoplay, Prime Video, Disney+, Stremio. App que não estiver instalado continua no dock, apagado.
-- **Todos** abre a grade dos outros apps instalados (Plex, Jellyfin e o que mais tiver atividade de launcher).
+- Fundo claro e título **Para você**. Abas Explorar, Filmes e Séries; Filmes abre selecionada.
+- Uma fileira em destaque: cartaz largo e pôsteres ao lado, com fotos originais no app. Títulos fictícios, sem rede e sem pôster de estúdio.
+- Dock flutuante, nesta ordem: Netflix, YouTube, Globoplay, Prime Video, Disney+, Stremio. App que não estiver instalado continua no dock; ao abrir, um aviso explica.
+- **Todos**, no fim do dock, abre a grade dos outros apps instalados (Plex, Jellyfin e o que mais tiver atividade de launcher).
 - Ao voltar para o launcher, a lista de pacotes é relida.
-- **Entradas**, o botão Menu do controle, ou a tecla de fonte (`TV_INPUT`) abrem HDMI, TV ao vivo, o seletor da TCL se existir, Configurações e Wi-Fi.
+- A engrenagem, o botão Menu ou a tecla de fonte (`TV_INPUT`) abrem Entradas: HDMI, TV ao vivo, o seletor da TCL se existir, Configurações e Wi-Fi. Transmitir abre a transmissão do sistema, se existir. O lápis abre os aplicativos do sistema.
 
 ## O que você precisa
 
@@ -196,7 +196,7 @@ SETUPWRAITH_PACKAGE=nome.que.aparecer tools/install-launcher.sh
 
 Se a home abrir atrás do app que estava na frente, rode `tools/install-launcher.sh` outra vez. O script força a parada de Configurações e do launcher antes de mandar Home. Foi o que destravou esse caso no tv-home.
 
-No dock, **Todos** deve listar o que você instalou além dos seis apps fixos. Volte de um app para a home depois de instalar algo novo: a lista é relida. **Entradas** deve abrir mesmo sem HDMI detectado (no emulador ou num aparelho sem entrada visível aparece o aviso, e Configurações continua lá).
+No dock, **Todos** deve listar o que você instalou além dos seis apps fixos. Volte de um app para a home depois de instalar algo novo: a lista é relida. A engrenagem (**Entradas**) deve abrir mesmo sem HDMI detectado (no emulador ou num aparelho sem entrada visível aparece o aviso, e Configurações continua lá). Menu e a tecla de fonte fazem o mesmo.
 
 ## 9. Restaurar
 
@@ -252,7 +252,7 @@ tools/install-launcher.sh
 
 ## Recomendações
 
-As prateleiras saem de `StaticRecommendations`, um catálogo fixo dentro do app. O gancho é a interface `RecommendationsSource` e o método `RecommendationCatalog.current()` em `app/src/main/java/dev/enzotraini/tvlauncher/model/Catalog.kt`.
+A fileira de cada aba sai de `StaticRecommendations`, um catálogo fixo dentro do app. O gancho é a interface `RecommendationsSource` e o método `RecommendationCatalog.current()` em `app/src/main/java/dev/enzotraini/tvlauncher/model/Catalog.kt`.
 
 Uma versão futura pode trocar essa fonte por TMDB:
 
@@ -276,7 +276,7 @@ Não coloque a chave em `config.xml`, no Gradle versionado nem neste README.
 
 - Fonte real de recomendações (TMDB ou outra), com a chave fora do git.
 - Ajuste da lista de debloat depois de ver os pacotes desta TCL.
-- Prova visual na tela de 75". Aqui só houve compilação do APK de debug, sem aparelho.
+- Prova na TCL 75". A compilação e o still da home são feitos fora do aparelho.
 
 ## Mapa do repositório
 

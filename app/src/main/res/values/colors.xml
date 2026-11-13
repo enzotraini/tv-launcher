@@ -1,10 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="bg">#F4F1EB</color>
+    <color name="bg">#F4F5F7</color>
     <color name="surface">#FFFFFF</color>
-    <color name="ink">#1C1917</color>
-    <color name="muted">#6F6A64</color>
-    <color name="line">#E3DDD4</color>
+    <color name="ink">#141414</color>
+    <color name="muted">#7A8088</color>
+    <color name="line">#E4E6EA</color>
     <color name="accent">#0E6B5C</color>
     <color name="dock_tile">#EFEBE4</color>
+    <color name="tab_inactive">#8E939B</color>
+    <color name="white">#FFFFFF</color>
+    <color name="netflix_black">#000000</color>
+    <color name="netflix_red">#E50914</color>
+    <color name="prime_blue">#0E7FE8</color>
+    <color name="disney_navy">#14145C</color>
+    <color name="todos_tile">#F1F2F4</color>
 </resources>

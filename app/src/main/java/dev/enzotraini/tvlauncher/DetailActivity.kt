@@ -1,11 +1,12 @@
 package dev.enzotraini.tvlauncher
 
 import android.os.Bundle
-import android.view.View
 import dev.enzotraini.tvlauncher.databinding.ActivityDetailBinding
 import dev.enzotraini.tvlauncher.model.Kind
 import dev.enzotraini.tvlauncher.model.RecommendationCatalog
-import dev.enzotraini.tvlauncher.model.monogram
+import dev.enzotraini.tvlauncher.model.metadata
+import dev.enzotraini.tvlauncher.ui.Artwork
+import dev.enzotraini.tvlauncher.ui.applyRoundOutline
 import kotlin.math.roundToInt
 
 class DetailActivity : TvActivity() {
@@ -19,22 +20,21 @@ class DetailActivity : TvActivity() {
         val binding = ActivityDetailBinding.inflate(layoutInflater)
         setContentView(binding.root)
         val kind = getString(if (title.kind == Kind.MOVIE) R.string.kind_movie else R.string.kind_series)
-        binding.detailKind.text = getString(R.string.title_meta, kind, title.year)
+        binding.detailKind.text = title.metadata(kind)
         binding.detailTitle.text = title.name
         binding.detailBlurb.text = title.blurb
-        binding.detailArt.accent = title.accent
-        binding.detailArt.monogram = monogram(title.name)
-        binding.detailArt.kindLabel = kind
-        binding.detailArt.progress = title.progress
-        val progress = title.progress
-        if (progress != null) {
-            binding.detailProgress.visibility = View.VISIBLE
-            binding.detailProgress.text = getString(
-                R.string.progress_watched,
-                (progress * 100f).roundToInt(),
-            )
-        }
+        val artwork = Artwork.resId(title.artwork)
+        if (artwork != 0) binding.detailArt.setImageResource(artwork)
+        val params = binding.detailFrame.layoutParams
+        params.width = dp(if (title.hero) 560 else 300)
+        params.height = dp(if (title.hero) 315 else 450)
+        binding.detailFrame.layoutParams = params
+        binding.detailFrame.applyRoundOutline(resources.getDimension(R.dimen.poster_radius), clip = true)
         binding.detailRoot.requestFocus()
+    }
+
+    private fun dp(value: Int): Int {
+        return (value * resources.displayMetrics.density).roundToInt()
     }
 
     companion object {

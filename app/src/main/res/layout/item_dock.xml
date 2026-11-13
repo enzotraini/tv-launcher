@@ -1,54 +1,48 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/dock_root"
-    android:layout_width="@dimen/dock_item_width"
+    android:layout_width="wrap_content"
     android:layout_height="wrap_content"
-    android:layout_marginEnd="@dimen/dock_gap"
     android:clickable="true"
     android:clipChildren="false"
     android:focusable="true"
-    android:gravity="center_horizontal"
-    android:orientation="vertical"
-    android:paddingTop="4dp"
-    android:paddingBottom="4dp">
+    android:foreground="@drawable/focus_dock">
 
     <FrameLayout
         android:id="@+id/dock_frame"
-        android:layout_width="@dimen/dock_icon"
-        android:layout_height="@dimen/dock_icon"
-        android:background="@drawable/dock_tile"
-        android:duplicateParentState="true"
-        android:foreground="@drawable/focus_ring"
-        android:padding="8dp">
+        android:layout_width="120dp"
+        android:layout_height="@dimen/dock_tile_height"
+        android:duplicateParentState="true">
 
-        <ImageView
-            android:id="@+id/dock_icon"
+        <LinearLayout
+            android:id="@+id/dock_fallback"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:contentDescription="@null"
-            android:scaleType="fitCenter" />
-
-        <TextView
-            android:id="@+id/dock_monogram"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:fontFamily="sans-serif-medium"
             android:gravity="center"
-            android:textColor="@color/ink"
-            android:textSize="16sp"
-            android:visibility="gone" />
-    </FrameLayout>
+            android:orientation="horizontal"
+            android:paddingStart="10dp"
+            android:paddingEnd="10dp">
 
-    <TextView
-        android:id="@+id/dock_label"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="6dp"
-        android:ellipsize="marquee"
-        android:gravity="center"
-        android:marqueeRepeatLimit="marquee_forever"
-        android:maxLines="1"
-        android:scrollHorizontally="true"
-        android:textColor="@color/ink"
-        android:textSize="12sp" />
-</LinearLayout>
+            <ImageView
+                android:id="@+id/dock_mark"
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:layout_marginEnd="6dp"
+                android:contentDescription="@null"
+                android:importantForAccessibility="no"
+                android:scaleType="fitCenter"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/dock_word"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:fontFamily="@font/inter_bold"
+                android:includeFontPadding="false"
+                android:maxLines="1"
+                android:textColor="@color/white"
+                android:textSize="14sp" />
+        </LinearLayout>
+    </FrameLayout>
+</FrameLayout>
