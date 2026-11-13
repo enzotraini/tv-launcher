@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Dock e atalhos. A ordem de dock_apps e dock_labels é a mesma, da esquerda para a direita.
+  App que não estiver instalado continua no dock, apagado, com o nome.
+  Para achar um pacote na TV:
+    tools/venv/bin/python tools/tv.py 'pm list packages'
+  Depois de editar, gere de novo e reinstale: tools/install-launcher.sh
+-->
+<resources>
+    <string-array name="dock_apps" translatable="false">
+        <item>com.netflix.ninja</item>
+        <item>com.google.android.youtube.tv</item>
+        <item>com.globo.globotv</item>
+        <item>com.amazon.amazonvideo.livingroom</item>
+        <item>com.disney.disneyplus</item>
+        <item>com.stremio.one</item>
+    </string-array>
+
+    <string-array name="dock_labels">
+        <item>Netflix</item>
+        <item>YouTube</item>
+        <item>Globoplay</item>
+        <item>Prime Video</item>
+        <item>Disney+</item>
+        <item>Stremio</item>
+    </string-array>
+
+    <!-- Some da grade "Todos". TV ao vivo fica em Entradas. -->
+    <string-array name="hidden_apps" translatable="false">
+        <item>com.tcl.tv</item>
+        <item>com.tcl.suspension</item>
+        <item>com.tcl.t_solo</item>
+        <item>com.tcl.dashboard</item>
+        <item>com.google.android.apps.tv.launcherx</item>
+        <item>com.google.android.tvlauncher</item>
+        <item>com.google.android.tungsten.setupwraith</item>
+        <item>com.android.tv.settings</item>
+        <item>com.android.settings</item>
+    </string-array>
+
+    <!-- Primeiro pacote instalado desta lista abre em "TV ao vivo". -->
+    <string name="live_tv_package" translatable="false">com.tcl.tv</string>
+
+    <!-- Seletor de fontes da TCL, se a troca direta de HDMI falhar. -->
+    <string name="input_picker_package" translatable="false">com.tcl.suspension</string>
+
+    <integer name="app_columns">6</integer>
+</resources>

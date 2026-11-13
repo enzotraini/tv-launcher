@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Para você</string>
+    <string name="for_you">Para você</string>
+    <string name="home_subtitle">Filmes, séries e os apps da sala.</string>
+    <string name="greeting_morning">Bom dia</string>
+    <string name="greeting_afternoon">Boa tarde</string>
+    <string name="greeting_night">Boa noite</string>
+    <string name="entradas">Entradas</string>
+    <string name="entradas_cd">Abrir entradas e atalhos</string>
+    <string name="todos">Todos</string>
+    <string name="todos_cd">Todos os aplicativos</string>
+    <string name="apps_title">Todos os aplicativos</string>
+    <string name="apps_subtitle">O que está instalado além do dock.</string>
+    <string name="apps_empty">Nenhum outro aplicativo encontrado.</string>
+    <string name="inputs_eyebrow">Atalhos</string>
+    <string name="inputs_title">Entradas e atalhos</string>
+    <string name="inputs_subtitle">HDMI, TV ao vivo e configurações do aparelho.</string>
+    <string name="no_hdmi">Nenhuma entrada HDMI encontrada neste aparelho.</string>
+    <string name="live_tv">TV ao vivo</string>
+    <string name="all_sources">Todas as fontes</string>
+    <string name="settings">Configurações</string>
+    <string name="wifi">Wi-Fi</string>
+    <string name="hint_hdmi">HDMI</string>
+    <string name="hint_app">App</string>
+    <string name="hint_system">Sistema</string>
+    <string name="input_open_failed">Não foi possível abrir esta entrada.</string>
+    <string name="live_tv_missing">TV ao vivo não está instalada.</string>
+    <string name="app_missing">%1$s não está instalado.</string>
+    <string name="dock_missing_cd">%1$s, não instalado</string>
+    <string name="kind_movie">Filme</string>
+    <string name="kind_series">Série</string>
+    <string name="title_meta">%1$s · %2$d</string>
+    <string name="progress_watched">%d%% assistido</string>
+    <string name="poster_cd">%1$s, %2$s</string>
+    <string name="detail_footnote">Catálogo local desta versão. Recomendações online ficam para depois, com a chave fora do git.</string>
+    <plurals name="apps_count">
+        <item quantity="one">%d aplicativo</item>
+        <item quantity="other">%d aplicativos</item>
+    </plurals>
+</resources>

@@ -1,0 +1,6 @@
+# Copie para recommendations.properties na raiz do repositório.
+# Esse arquivo entra no .gitignore. Não commite a chave.
+#
+# Uma versão futura pode ler tmdb.api.key aqui, dentro de uma
+# RecommendationsSource nova. O app de hoje não usa rede.
+tmdb.api.key=
