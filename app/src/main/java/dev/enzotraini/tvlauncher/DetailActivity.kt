@@ -35,9 +35,9 @@ class DetailActivity : TvActivity() {
             finish()
             return
         }
-        binding.detailRoot.isFocusable = true
-        binding.detailRoot.requestFocus()
-        if (BuildConfig.TMDB_API_KEY.isBlank()) {
+        binding.detailRoot.isFocusable = false
+        val fixture = BuildConfig.DEBUG && app().tmdbForTest != null
+        if (BuildConfig.TMDB_API_KEY.isBlank() && !fixture) {
             binding.detailStatus.text = getString(R.string.empty_key)
             return
         }

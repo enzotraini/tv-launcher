@@ -22,7 +22,12 @@ class App : Application() {
         images = ImageLoader(this, io)
     }
 
+    var tmdbForTest: TmdbRepository? = null
+
     fun tmdb(): TmdbRepository {
+        if (BuildConfig.DEBUG) {
+            tmdbForTest?.let { return it }
+        }
         return TmdbRepository(
             apiKey = BuildConfig.TMDB_API_KEY,
             http = UrlHttp,

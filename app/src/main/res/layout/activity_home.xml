@@ -107,8 +107,7 @@
             <FrameLayout
                 android:id="@+id/hero_host"
                 android:layout_width="match_parent"
-                android:layout_height="0dp"
-                android:layout_weight="1"
+                android:layout_height="176dp"
                 android:clipChildren="false" />
 
             <TextView
@@ -120,7 +119,7 @@
                 android:textColor="@color/ink"
                 android:textSize="@dimen/text_body" />
 
-            <HorizontalScrollView
+            <dev.enzotraini.tvlauncher.ui.RowScrollView
                 android:id="@+id/poster_scroll"
                 android:layout_width="match_parent"
                 android:layout_height="@dimen/poster_height"
@@ -140,7 +139,7 @@
                     android:layout_height="match_parent"
                     android:clipChildren="false"
                     android:orientation="horizontal" />
-            </HorizontalScrollView>
+            </dev.enzotraini.tvlauncher.ui.RowScrollView>
         </LinearLayout>
 
         <LinearLayout
@@ -161,7 +160,7 @@
                 android:textColor="@color/ink"
                 android:textSize="@dimen/text_body" />
 
-            <HorizontalScrollView
+            <dev.enzotraini.tvlauncher.ui.RowScrollView
                 android:layout_width="match_parent"
                 android:layout_height="128dp"
                 android:layout_marginTop="@dimen/space_1"
@@ -179,7 +178,7 @@
                     android:layout_height="match_parent"
                     android:clipChildren="false"
                     android:orientation="horizontal" />
-            </HorizontalScrollView>
+            </dev.enzotraini.tvlauncher.ui.RowScrollView>
 
             <TextView
                 android:id="@+id/free_title"
@@ -191,7 +190,7 @@
                 android:textColor="@color/ink"
                 android:textSize="@dimen/text_body" />
 
-            <HorizontalScrollView
+            <dev.enzotraini.tvlauncher.ui.RowScrollView
                 android:layout_width="match_parent"
                 android:layout_height="112dp"
                 android:layout_marginTop="@dimen/space_1"
@@ -209,7 +208,7 @@
                     android:layout_height="match_parent"
                     android:clipChildren="false"
                     android:orientation="horizontal" />
-            </HorizontalScrollView>
+            </dev.enzotraini.tvlauncher.ui.RowScrollView>
         </LinearLayout>
 
         <TextView
@@ -223,7 +222,7 @@
             android:visibility="gone" />
     </LinearLayout>
 
-    <HorizontalScrollView
+    <dev.enzotraini.tvlauncher.ui.RowScrollView
         android:id="@+id/dock_scroll"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -268,5 +267,5 @@
                     android:orientation="horizontal" />
             </LinearLayout>
         </LinearLayout>
-    </HorizontalScrollView>
+    </dev.enzotraini.tvlauncher.ui.RowScrollView>
 </FrameLayout>

@@ -24,5 +24,5 @@
     <dimen name="corner">20dp</dimen>
     <dimen name="icon_button">44dp</dimen>
     <dimen name="poster_width">124dp</dimen>
-    <dimen name="poster_height">186dp</dimen>
+    <dimen name="poster_height">124dp</dimen>
 </resources>

@@ -38,7 +38,7 @@
         android:textSize="16sp"
         android:visibility="gone" />
 
-    <ScrollView
+    <dev.enzotraini.tvlauncher.ui.QuietScrollView
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
@@ -58,5 +58,5 @@
             android:paddingStart="@dimen/screen_padding"
             android:paddingEnd="@dimen/screen_padding"
             android:paddingBottom="36dp" />
-    </ScrollView>
+    </dev.enzotraini.tvlauncher.ui.QuietScrollView>
 </LinearLayout>

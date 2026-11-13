@@ -27,7 +27,7 @@
         android:textColor="@color/muted"
         android:textSize="@dimen/text_caption" />
 
-    <HorizontalScrollView
+    <dev.enzotraini.tvlauncher.ui.RowScrollView
         android:layout_width="match_parent"
         android:layout_height="220dp"
         android:layout_marginTop="@dimen/space_3"
@@ -45,7 +45,7 @@
             android:layout_height="match_parent"
             android:clipChildren="false"
             android:orientation="horizontal" />
-    </HorizontalScrollView>
+    </dev.enzotraini.tvlauncher.ui.RowScrollView>
 
     <TextView
         android:id="@+id/wallpaper_empty"
@@ -57,7 +57,7 @@
         android:textSize="@dimen/text_caption"
         android:visibility="gone" />
 
-    <HorizontalScrollView
+    <dev.enzotraini.tvlauncher.ui.RowScrollView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="@dimen/space_2"
@@ -72,5 +72,5 @@
             android:layout_height="wrap_content"
             android:clipChildren="false"
             android:orientation="horizontal" />
-    </HorizontalScrollView>
+    </dev.enzotraini.tvlauncher.ui.RowScrollView>
 </LinearLayout>

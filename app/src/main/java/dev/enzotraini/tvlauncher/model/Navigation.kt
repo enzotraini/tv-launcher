@@ -41,6 +41,7 @@ fun nextHeroIndex(current: Int, count: Int): Int {
 
 class ShelfMemory {
     private val spots = HashMap<String, Int>()
+    private val keys = HashMap<String, String>()
 
     fun remember(shelfId: String, index: Int) {
         if (shelfId.isBlank() || index < 0) return
@@ -52,6 +53,13 @@ class ShelfMemory {
         val saved = spots[shelfId] ?: return 0
         return saved.coerceIn(0, count - 1)
     }
+
+    fun rememberKey(section: String, key: String) {
+        if (section.isBlank() || key.isBlank()) return
+        keys[section] = key
+    }
+
+    fun recallKey(section: String): String? = keys[section]
 }
 
 const val HERO_INTERVAL_MS = 8_000L

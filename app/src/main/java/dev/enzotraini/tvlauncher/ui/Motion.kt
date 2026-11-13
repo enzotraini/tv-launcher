@@ -15,7 +15,7 @@ private val EASE = PathInterpolator(0.2f, 0f, 0f, 1f)
 
 fun View.tvFocus(scale: Float = 1.08f, onChange: (Boolean) -> Unit = {}) {
     isFocusable = true
-    isFocusableInTouchMode = true
+    isFocusableInTouchMode = false
     setOnFocusChangeListener { target, hasFocus ->
         target.animate().cancel()
         target.animate()

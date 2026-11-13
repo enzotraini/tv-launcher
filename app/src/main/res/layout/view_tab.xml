@@ -8,7 +8,11 @@
     android:clickable="true"
     android:focusable="true"
     android:fontFamily="@font/inter_regular"
+    android:foreground="@drawable/focus_tab"
     android:includeFontPadding="false"
+    android:paddingStart="8dp"
+    android:paddingTop="4dp"
+    android:paddingEnd="8dp"
     android:paddingBottom="6dp"
     android:textColor="@color/tab_inactive"
     android:textSize="@dimen/text_body" />

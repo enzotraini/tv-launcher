@@ -21,7 +21,6 @@ import dev.enzotraini.tvlauncher.apps.LaunchableApp
 import dev.enzotraini.tvlauncher.databinding.ActivityHomeBinding
 import dev.enzotraini.tvlauncher.databinding.ItemDockBinding
 import dev.enzotraini.tvlauncher.databinding.ViewTabBinding
-import dev.enzotraini.tvlauncher.model.HomeBand
 import dev.enzotraini.tvlauncher.model.HomeTab
 import dev.enzotraini.tvlauncher.model.Load
 import dev.enzotraini.tvlauncher.model.MediaItem
@@ -29,13 +28,13 @@ import dev.enzotraini.tvlauncher.model.MediaKind
 import dev.enzotraini.tvlauncher.model.OfferKind
 import dev.enzotraini.tvlauncher.model.ShelfMemory
 import dev.enzotraini.tvlauncher.model.WeatherKind
-import dev.enzotraini.tvlauncher.model.bandAfterBack
 import dev.enzotraini.tvlauncher.model.broadcastWeek
 import dev.enzotraini.tvlauncher.model.channelHint
 import dev.enzotraini.tvlauncher.model.clockLabel
 import dev.enzotraini.tvlauncher.model.matchProvider
 import dev.enzotraini.tvlauncher.model.metaLine
 import dev.enzotraini.tvlauncher.model.nextHeroIndex
+import dev.enzotraini.tvlauncher.model.previousHeroIndex
 import dev.enzotraini.tvlauncher.model.pageTint
 import dev.enzotraini.tvlauncher.model.planDock
 import dev.enzotraini.tvlauncher.model.resolveChannel
@@ -77,6 +76,7 @@ class HomeActivity : TvActivity() {
     private var tintToken = 0
     private var packagesRegistered = false
     private var focusTouched = false
+    private var restoring = false
 
     private val clockTick = object : Runnable {
         override fun run() {
@@ -115,7 +115,7 @@ class HomeActivity : TvActivity() {
         bindTabs()
         binding.settingsButton.tag = KEY_ENTRADAS
         binding.settingsButton.tvFocus(1.05f) { focused ->
-            if (focused) lastFocusKey = KEY_ENTRADAS
+            if (focused) noteFocus(KEY_ENTRADAS)
         }
         binding.settingsButton.setOnClickListener { openInputs() }
         selectTab(currentTab, fetch = false)
@@ -125,18 +125,20 @@ class HomeActivity : TvActivity() {
     }
 
     override fun onResume() {
+        restoring = true
         super.onResume()
         handler.removeCallbacks(clockTick)
         clockTick.run()
         loadWeather()
         refreshDock()
         if (currentTab == HomeTab.AO_VIVO) {
-            showLive()
-        } else {
-            loadCatalog(currentTab, keepVisible = posters.isNotEmpty() || heroItems.isNotEmpty())
+            if (channels.isEmpty()) showLive()
+        } else if (posters.isEmpty() && heroItems.isEmpty()) {
+            loadCatalog(currentTab, keepVisible = false)
         }
         binding.root.post {
-            if (currentFocus == null) restoreFocus(lastFocusKey)
+            settleFocus(preferHero = false)
+            restoring = false
         }
     }
 
@@ -160,35 +162,41 @@ class HomeActivity : TvActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        lastFocusKey = null
+        lastFocusKey = "tab:${HomeTab.EXPLORAR.shelfId}"
         focusTouched = false
         selectTab(HomeTab.EXPLORAR, fetch = true, force = true)
     }
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         if (event.action == KeyEvent.ACTION_DOWN) focusTouched = true
+        if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0 && currentFocus?.tag == KEY_HERO) {
+            when (event.keyCode) {
+                KeyEvent.KEYCODE_DPAD_RIGHT -> {
+                    stepHero(1)
+                    return true
+                }
+                KeyEvent.KEYCODE_DPAD_LEFT -> {
+                    stepHero(-1)
+                    return true
+                }
+            }
+        }
         return super.dispatchKeyEvent(event)
     }
 
     @Deprecated("O Voltar não fecha a home.")
     @Suppress("DEPRECATION")
     override fun onBackPressed() {
-        if (lastFocusKey?.startsWith("free:") == true && channels.isNotEmpty()) {
-            val index = memory.recall(ROW_FREE, freebies.size)
-            (channels.getOrNull(index) ?: channels.first()).requestFocus()
-            return
+        val focused = currentFocus
+        val upId = focused?.nextFocusUpId ?: View.NO_ID
+        if (focused != null && upId != View.NO_ID && upId != focused.id) {
+            val next = findViewById<View>(upId)
+            if (isUsableFocus(next)) {
+                next?.requestFocus()
+                return
+            }
         }
-        val band = bandOf(lastFocusKey)
-        val next = bandAfterBack(
-            current = band,
-            hasHero = hero?.play?.isShown == true && currentTab != HomeTab.AO_VIVO,
-            hasRow = currentRow().isNotEmpty(),
-        )
-        if (next == HomeBand.TABS && band == HomeBand.TABS) {
-            selectedTab()?.requestFocus()
-            return
-        }
-        focusBand(next)
+        selectedTab()?.requestFocus()
     }
 
     private fun bindTabs() {
@@ -204,7 +212,8 @@ class HomeActivity : TvActivity() {
             label.tag = "tab:${tab.shelfId}"
             label.tvFocus(1f) { focused ->
                 if (focused) {
-                    lastFocusKey = "tab:${tab.shelfId}"
+                    noteFocus("tab:${tab.shelfId}")
+                    memory.rememberKey("tab", "tab:${tab.shelfId}")
                     selectTab(tab, fetch = true)
                 }
             }
@@ -244,7 +253,8 @@ class HomeActivity : TvActivity() {
         val generation = ++loadGeneration
         binding.catalogBlock.visibility = View.VISIBLE
         binding.liveBlock.visibility = View.GONE
-        if (BuildConfig.TMDB_API_KEY.isBlank()) {
+        val fixture = BuildConfig.DEBUG && app().tmdbForTest != null
+        if (BuildConfig.TMDB_API_KEY.isBlank() && !fixture) {
             showMessage(getString(R.string.empty_key))
             return
         }
@@ -315,7 +325,7 @@ class HomeActivity : TvActivity() {
         bindHero(tab, feature, feature === trending || tab == HomeTab.EXPLORAR && trending.isNotEmpty())
         bindPosters(tab, shelfItems)
         wireFocus()
-        if (!focusTouched) hero?.play?.requestFocus() else restoreFocus(lastFocusKey)
+        settleFocus(preferHero = !focusTouched)
         prefetchBadges((feature + shelfItems).distinctBy { it.kind to it.id }.take(8))
     }
 
@@ -367,18 +377,35 @@ class HomeActivity : TvActivity() {
         banner.visibility = View.VISIBLE
         showHeroItem(items.first(), trending && tab == HomeTab.EXPLORAR)
         handler.removeCallbacks(heroTick)
-        if (items.size > 1) handler.postDelayed(heroTick, config.heroSeconds * 1_000L)
+        if (items.size > 1 && !usingFixture()) handler.postDelayed(heroTick, config.heroSeconds * 1_000L)
     }
 
     private fun ensureHero(): HeroBanner {
         hero?.let { return it }
         val banner = HeroBanner(this)
-        banner.play.id = View.generateViewId()
-        banner.play.tag = KEY_HERO
-        banner.play.tvFocus(1.04f) { focused ->
+        banner.id = View.generateViewId()
+        banner.tag = KEY_HERO
+        banner.tvFocus(1.02f) { focused ->
             if (focused) {
-                lastFocusKey = KEY_HERO
+                noteFocus(KEY_HERO)
+                memory.rememberKey("band", KEY_HERO)
                 heroBitmap?.let { tintFrom(it) }
+            }
+        }
+        banner.setOnKeyListener { _, keyCode, event ->
+            if (event.action != KeyEvent.ACTION_DOWN || event.repeatCount > 0) {
+                return@setOnKeyListener false
+            }
+            when (keyCode) {
+                KeyEvent.KEYCODE_DPAD_RIGHT -> {
+                    stepHero(1)
+                    true
+                }
+                KeyEvent.KEYCODE_DPAD_LEFT -> {
+                    stepHero(-1)
+                    true
+                }
+                else -> false
             }
         }
         binding.heroHost.removeAllViews()
@@ -403,7 +430,7 @@ class HomeActivity : TvActivity() {
             contentDescription = getString(R.string.poster_cd, item.title, meta),
         )
         banner.setAvailable(null)
-        banner.play.setOnClickListener { openDetail(item) }
+        banner.setOnClickListener { openDetail(item) }
         val url = tmdbImage(item.backdropPath ?: item.posterPath, "w1280")
         val art = banner.findViewById<android.widget.ImageView>(R.id.hero_art)
         app().images.load(url, art) { bitmap ->
@@ -415,9 +442,29 @@ class HomeActivity : TvActivity() {
     private fun advanceHero() {
         if (heroItems.size <= 1 || currentTab == HomeTab.AO_VIVO) return
         if (lastFocusKey?.startsWith("poster:") == true) return
-        heroIndex = nextHeroIndex(heroIndex, heroItems.size)
+        showHeroAt(nextHeroIndex(heroIndex, heroItems.size))
+    }
+
+    private fun stepHero(delta: Int) {
+        if (heroItems.size <= 1 || currentTab == HomeTab.AO_VIVO) return
+        val next = if (delta >= 0) {
+            nextHeroIndex(heroIndex, heroItems.size)
+        } else {
+            previousHeroIndex(heroIndex, heroItems.size)
+        }
+        showHeroAt(next)
+        handler.removeCallbacks(heroTick)
+        if (!usingFixture()) handler.postDelayed(heroTick, config.heroSeconds * 1_000L)
+    }
+
+    private fun usingFixture(): Boolean = BuildConfig.DEBUG && app().tmdbForTest != null
+
+    private fun showHeroAt(index: Int) {
+        if (heroItems.isEmpty()) return
+        heroIndex = index.coerceIn(0, heroItems.lastIndex)
         val item = heroItems[heroIndex]
         showHeroItem(item, currentTab == HomeTab.EXPLORAR)
+        memory.rememberKey("hero:${currentTab.shelfId}", item.id.toString())
     }
 
     private fun bindPosters(tab: HomeTab, items: List<MediaItem>) {
@@ -433,9 +480,10 @@ class HomeActivity : TvActivity() {
             card.tag = "poster:${tab.shelfId}:${item.id}"
             card.tvFocus(1.08f) { focused ->
                 if (!focused) return@tvFocus
-                lastFocusKey = card.tag as String
+                noteFocus(card.tag as String)
                 activeRow = tab.shelfId
                 memory.remember(tab.shelfId, index)
+                memory.rememberKey(tab.shelfId, card.tag as String)
                 val drawn = (card.findViewById<android.widget.ImageView>(R.id.poster_art).drawable as? android.graphics.drawable.BitmapDrawable)?.bitmap
                 if (drawn != null) tintFrom(drawn)
             }
@@ -495,9 +543,10 @@ class HomeActivity : TvActivity() {
             card.tag = "channel:${channel.id}"
             card.tvFocus(1.06f) { focused ->
                 if (focused) {
-                    lastFocusKey = card.tag as String
+                    noteFocus(card.tag as String)
                     activeRow = ROW_CHANNELS
                     memory.remember(ROW_CHANNELS, index)
+                    memory.rememberKey(ROW_CHANNELS, card.tag as String)
                 }
             }
             card.setOnClickListener { openChannel(target, channel.name) }
@@ -513,9 +562,10 @@ class HomeActivity : TvActivity() {
             card.tag = "free:${service.id}"
             card.tvFocus(1.06f) { focused ->
                 if (focused) {
-                    lastFocusKey = card.tag as String
+                    noteFocus(card.tag as String)
                     activeRow = ROW_FREE
                     memory.remember(ROW_FREE, index)
+                    memory.rememberKey(ROW_FREE, card.tag as String)
                 }
             }
             card.setOnClickListener {
@@ -577,7 +627,7 @@ class HomeActivity : TvActivity() {
         appsSignature = signature
         bindDock(apps)
         wireFocus()
-        binding.root.post { restoreFocus(key) }
+        binding.root.post { if (!isUsableFocus(currentFocus)) restoreFocus(key) }
     }
 
     private fun bindDock(apps: List<LaunchableApp>) {
@@ -682,19 +732,29 @@ class HomeActivity : TvActivity() {
         root.tag = focusKey
         root.setOnClickListener { onClick() }
         root.tvFocus(1.06f) { focused ->
-            if (focused) lastFocusKey = focusKey
+            if (focused) {
+                noteFocus(focusKey)
+                memory.rememberKey("dock", focusKey)
+            }
         }
         binding.dockRow.addView(root)
         dockViews += root
     }
 
     private fun wireFocus() {
-        val tabs = tabViews.map { it.label } + binding.settingsButton
+        applyLinks(collectRows())
+        binding.root.post {
+            if (isFinishing) return@post
+            applyLinks(collectRows())
+        }
+    }
+
+    private fun collectRows(): List<List<View>> {
         val rows = mutableListOf<List<View>>()
+        val tabs = tabViews.map { it.label } + binding.settingsButton
         if (tabs.isNotEmpty()) rows += tabs
-        val play = hero?.play?.takeIf { it.isShown && currentTab != HomeTab.AO_VIVO }
-        if (play != null) rows += listOf(play)
-        val row = currentRow()
+        val feature = hero?.takeIf { it.isShown && it.isFocusable && currentTab != HomeTab.AO_VIVO }
+        if (feature != null) rows += listOf(feature)
         if (currentTab == HomeTab.AO_VIVO) {
             if (channels.isNotEmpty()) rows += channels.toList()
             if (freebies.isNotEmpty()) rows += freebies.toList()
@@ -702,41 +762,81 @@ class HomeActivity : TvActivity() {
             rows += posters.toList()
         }
         if (dockViews.isNotEmpty()) rows += dockViews.toList()
+        return rows
+    }
+
+    private fun applyLinks(rows: List<List<View>>) {
         Dpad.stack(rows)
-        val remembered = row.getOrNull(memory.recall(activeRow, row.size))
-        val downFromTabs = play?.id ?: remembered?.id ?: dockViews.firstOrNull()?.id ?: View.NO_ID
-        selectedTab()?.nextFocusDownId = downFromTabs
-        binding.settingsButton.nextFocusDownId = downFromTabs
-        if (play != null && remembered != null) play.nextFocusDownId = remembered.id
-        if (play != null) play.nextFocusUpId = selectedTab()?.id ?: play.id
-        if (remembered != null) {
-            dockViews.forEach { it.nextFocusUpId = remembered.id }
-            if (play != null) posters.forEach { it.nextFocusUpId = play.id }
+        val tab = selectedTab() ?: return
+        val feature = hero?.takeIf { it.isShown && it.isFocusable && currentTab != HomeTab.AO_VIVO }
+        if (feature != null) {
+            feature.nextFocusUpId = tab.id
+            val poster = rememberedPoster()
+            if (poster != null) {
+                feature.nextFocusDownId = poster.id
+                posters.forEach { it.nextFocusUpId = feature.id }
+            }
+            return
         }
+        val firstContent = when {
+            currentTab == HomeTab.AO_VIVO && channels.isNotEmpty() -> channels
+            posters.isNotEmpty() -> posters
+            else -> emptyList()
+        }
+        firstContent.forEach { it.nextFocusUpId = tab.id }
     }
 
-    private fun currentRow(): List<View> {
-        return when (currentTab) {
-            HomeTab.AO_VIVO -> if (activeRow == ROW_CHANNELS && channels.isNotEmpty()) channels else freebies.ifEmpty { channels }
-            else -> posters
-        }
+    private fun rememberedPoster(): View? {
+        if (posters.isEmpty() || currentTab == HomeTab.AO_VIVO) return null
+        val saved = memory.recallKey(currentTab.shelfId)
+        val tagged = saved?.let { binding.root.findViewWithTag<View>(it) }
+        if (tagged != null && tagged in posters && isUsableFocus(tagged)) return tagged
+        return posters.getOrNull(memory.recall(currentTab.shelfId, posters.size))
     }
 
-    private fun focusBand(band: HomeBand) {
-        val target = when (band) {
-            HomeBand.TABS -> selectedTab()
-            HomeBand.HERO -> hero?.play
-            HomeBand.ROW -> currentRow().getOrNull(memory.recall(activeRow, currentRow().size))
-            HomeBand.DOCK -> dockViews.firstOrNull()
-        } ?: selectedTab() ?: dockViews.firstOrNull()
-        target?.requestFocus()
+    private fun noteFocus(key: String) {
+        if (restoring) return
+        lastFocusKey = key
+    }
+
+    private fun settleFocus(preferHero: Boolean) {
+        val feature = hero?.takeIf { isUsableFocus(it) && currentTab != HomeTab.AO_VIVO }
+        if (preferHero && feature != null && (currentFocus == null || currentFocus == selectedTab())) {
+            feature.requestFocus()
+            return
+        }
+        val saved = lastFocusKey?.let { binding.root.findViewWithTag<View>(it) }?.takeIf { isUsableFocus(it) }
+        val parkedOnChrome = currentFocus == null || currentFocus == selectedTab() || currentFocus == binding.settingsButton
+        if (saved != null && parkedOnChrome && saved != currentFocus) {
+            saved.requestFocus()
+            return
+        }
+        if (isUsableFocus(currentFocus)) return
+        restoreFocus(lastFocusKey)
     }
 
     private fun restoreFocus(key: String?) {
-        val tagged = key?.let { binding.root.findViewWithTag<View>(it) }
-        val target = tagged ?: hero?.play?.takeIf { it.isShown } ?: posters.firstOrNull()
-            ?: channels.firstOrNull() ?: selectedTab() ?: dockViews.firstOrNull() ?: binding.settingsButton
+        val tagged = key?.let { binding.root.findViewWithTag<View>(it) }?.takeIf { isUsableFocus(it) }
+        val section = when (currentTab) {
+            HomeTab.AO_VIVO -> memory.recallKey(activeRow)
+            else -> memory.recallKey(currentTab.shelfId)
+        }
+        val remembered = section?.let { binding.root.findViewWithTag<View>(it) }?.takeIf { isUsableFocus(it) }
+        val target = tagged
+            ?: remembered
+            ?: hero?.takeIf { isUsableFocus(it) && currentTab != HomeTab.AO_VIVO }
+            ?: posters.firstOrNull { isUsableFocus(it) }
+            ?: channels.firstOrNull { isUsableFocus(it) }
+            ?: selectedTab()
+            ?: dockViews.firstOrNull { isUsableFocus(it) }
+            ?: binding.settingsButton
         target.requestFocus()
+    }
+
+    private fun isUsableFocus(view: View?): Boolean {
+        if (view == null || !view.isShown || !view.isFocusable) return false
+        if (view is android.widget.ScrollView || view is android.widget.HorizontalScrollView) return false
+        return view.isClickable
     }
 
     private fun tintFrom(bitmap: Bitmap) {
@@ -813,15 +913,6 @@ class HomeActivity : TvActivity() {
         val params = LinearLayout.LayoutParams(dp(widthDp), ViewGroup.LayoutParams.MATCH_PARENT)
         params.marginEnd = dp(gapDp)
         row.addView(view, params)
-    }
-
-    private fun bandOf(key: String?): HomeBand = when {
-        key == null -> HomeBand.TABS
-        key.startsWith("tab:") || key == KEY_ENTRADAS -> HomeBand.TABS
-        key == KEY_HERO -> HomeBand.HERO
-        key.startsWith("poster:") || key.startsWith("channel:") || key.startsWith("free:") -> HomeBand.ROW
-        key.startsWith("dock:") || key == KEY_ALL_APPS -> HomeBand.DOCK
-        else -> HomeBand.TABS
     }
 
     private fun keyOf(item: MediaItem): String = "${item.kind}:${item.id}"

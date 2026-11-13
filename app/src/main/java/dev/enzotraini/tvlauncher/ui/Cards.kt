@@ -31,9 +31,14 @@ class HeroBanner @JvmOverloads constructor(
         chip = findViewById(R.id.hero_chip)
         shimmer = findViewById(R.id.hero_shimmer)
         play = findViewById(R.id.hero_play)
+        play.isFocusable = false
+        play.isClickable = false
         val radius = resources.getDimension(R.dimen.radius_20)
         applyRoundOutline(radius, clip = true)
+        foreground = context.getDrawable(R.drawable.focus_card)
         setBackgroundColor(0xFF1C1917.toInt())
+        isFocusable = false
+        isClickable = false
     }
 
     fun showLoading() {
@@ -43,6 +48,8 @@ class HeroBanner @JvmOverloads constructor(
         chip.visibility = GONE
         title.text = ""
         meta.text = ""
+        isFocusable = false
+        isClickable = false
     }
 
     fun bind(name: String, metaText: String, kickerText: String?, contentDescription: String) {
@@ -50,7 +57,11 @@ class HeroBanner @JvmOverloads constructor(
         title.text = name
         meta.text = metaText
         play.visibility = VISIBLE
-        play.contentDescription = contentDescription
+        play.isFocusable = false
+        play.isClickable = false
+        isFocusable = true
+        isClickable = true
+        this.contentDescription = contentDescription
         if (kickerText.isNullOrBlank()) {
             kicker.visibility = GONE
         } else {
